@@ -1,8 +1,8 @@
 {
   "name": "claude-code-github-action",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "GitHub action for Claude Code Integration in PR comments and reviews",
-  "main": "run.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

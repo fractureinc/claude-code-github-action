@@ -21,24 +21,8 @@ inputs:
   github-token:
     description: 'GitHub token for API access'
     required: true
-  model-id:
-    description: 'Claude model ID to use'
-    required: false
-    default: 'claude-3-7-sonnet-20250219'
-  use-bedrock:
-    description: 'Whether to use AWS Bedrock for Claude access'
-    required: false
-    default: 'false'
-  max-tokens:
-    description: 'Maximum tokens to generate in the response'
-    required: false
-    default: '4096'
-  temperature:
-    description: 'Temperature for generation'
-    required: false
-    default: '0.7'
   output-file:
-    description: 'Path to write the output to'
+    description: 'Path to write the output to (for direct mode)'
     required: false
     default: 'claude-code-output'
 
@@ -63,24 +47,6 @@ runs:
       run: |
         # Set Anthropic API key
         export ANTHROPIC_API_KEY="${{ inputs.anthropic-api-key }}"
-        
-        # Set up AWS environment if using Bedrock
-        if [[ "${{ inputs.use-bedrock }}" == "true" ]]; then
-          if [[ -n "${{ env.BEDROCK_AWS_ACCESS_KEY_ID }}" && -n "${{ env.BEDROCK_AWS_SECRET_ACCESS_KEY }}" ]]; then
-            mkdir -p ~/.aws
-            cat > ~/.aws/credentials << EOF
-        [default]
-        aws_access_key_id = ${{ env.BEDROCK_AWS_ACCESS_KEY_ID }}
-        aws_secret_access_key = ${{ env.BEDROCK_AWS_SECRET_ACCESS_KEY }}
-        EOF
-            if [[ -n "${{ env.BEDROCK_AWS_REGION }}" ]]; then
-              cat > ~/.aws/config << EOF
-        [default]
-        region = ${{ env.BEDROCK_AWS_REGION }}
-        EOF
-            fi
-          fi
-        fi
         
         # Create a temp file for Claude's response
         RESPONSE_FILE=$(mktemp)
@@ -137,19 +103,9 @@ runs:
         EOF
         )
         
-        # Set up the Claude command
-        CLAUDE_CMD="claude"
-        CLAUDE_CMD+=" --model ${{ inputs.model-id }}"
-        CLAUDE_CMD+=" --max-tokens ${{ inputs.max-tokens }}"
-        CLAUDE_CMD+=" --temperature ${{ inputs.temperature }}"
-        
-        if [[ "${{ inputs.use-bedrock }}" == "true" ]]; then
-          CLAUDE_CMD+=" --provider bedrock"
-        fi
-        
-        # Run Claude and capture output
+        # Run Claude CLI
         echo "Sending request to Claude..."
-        echo "$PROMPT" | $CLAUDE_CMD -p - > "$RESPONSE_FILE"
+        echo "$PROMPT" | claude -p - > "$RESPONSE_FILE"
         
         # Post response as PR comment
         echo "Posting Claude's response as PR comment"
@@ -167,36 +123,8 @@ runs:
         # Set Anthropic API key
         export ANTHROPIC_API_KEY="${{ inputs.anthropic-api-key }}"
         
-        # Set up AWS environment if using Bedrock
-        if [[ "${{ inputs.use-bedrock }}" == "true" ]]; then
-          if [[ -n "${{ env.BEDROCK_AWS_ACCESS_KEY_ID }}" && -n "${{ env.BEDROCK_AWS_SECRET_ACCESS_KEY }}" ]]; then
-            mkdir -p ~/.aws
-            cat > ~/.aws/credentials << EOF
-        [default]
-        aws_access_key_id = ${{ env.BEDROCK_AWS_ACCESS_KEY_ID }}
-        aws_secret_access_key = ${{ env.BEDROCK_AWS_SECRET_ACCESS_KEY }}
-        EOF
-            if [[ -n "${{ env.BEDROCK_AWS_REGION }}" ]]; then
-              cat > ~/.aws/config << EOF
-        [default]
-        region = ${{ env.BEDROCK_AWS_REGION }}
-        EOF
-            fi
-          fi
-        fi
-        
-        # Set up the Claude command
-        CLAUDE_CMD="claude"
-        CLAUDE_CMD+=" --model ${{ inputs.model-id }}"
-        CLAUDE_CMD+=" --max-tokens ${{ inputs.max-tokens }}"
-        CLAUDE_CMD+=" --temperature ${{ inputs.temperature }}"
-        
-        if [[ "${{ inputs.use-bedrock }}" == "true" ]]; then
-          CLAUDE_CMD+=" --provider bedrock"
-        fi
-        
-        # Run Claude and capture output
+        # Run Claude CLI and capture output
         echo "Sending request to Claude..."
-        echo "${{ inputs.feedback }}" | $CLAUDE_CMD -p - > "${{ inputs.output-file }}"
+        echo "${{ inputs.feedback }}" | claude -p - > "${{ inputs.output-file }}"
         
         echo "Claude's response written to ${{ inputs.output-file }}"
