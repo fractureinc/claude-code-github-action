@@ -1,8 +1,8 @@
 {
   "name": "claude-code-github-action",
   "version": "0.1.1",
-  "description": "GitHub action for Claude Code Integration",
-  "main": "index.js",
+  "description": "GitHub action for Claude Code Integration in PR comments and reviews",
+  "main": "run.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,7 +15,10 @@
     "action",
     "claude",
     "code",
-    "anthropic"
+    "anthropic",
+    "ai",
+    "review",
+    "pull-request"
   ],
   "author": "Fracture Inc",
   "license": "MIT",
@@ -24,8 +27,9 @@
   },
   "homepage": "https://github.com/fractureinc/claude-code-github-action#readme",
   "dependencies": {
+    "@actions/core": "^1.10.1",
+    "@actions/github": "^6.0.0",
     "@anthropic-ai/claude-cli": "latest",
-    "@actions/core": "^1.10.0",
-    "@actions/github": "^5.1.1"
+    "axios": "^1.6.7"
   }
 }
