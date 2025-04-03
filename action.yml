@@ -67,6 +67,12 @@ runs:
         # Get list of files changed
         echo "Fetching files changed in the PR"
         PR_FILES=$(gh pr view ${{ inputs.pr-number }} --json files)
+        
+        # Get file content diffs
+        echo "Fetching file content diffs"
+        PR_DIFF=$(gh pr diff ${{ inputs.pr-number }})
+        
+        # Get summary of files changed for the PR metadata
         FILES_LIST=$(echo "$PR_FILES" | jq -r '.files[] | "- " + .path + " (" + .status + ", +" + (.additions | tostring) + "/-" + (.deletions | tostring) + ")"')
         
         # Get repo information
@@ -96,10 +102,15 @@ runs:
         Files changed in this PR:
         $FILES_LIST
         
+        Diff of changes:
+        \`\`\`diff
+        $PR_DIFF
+        \`\`\`
+        
         User query:
         ${{ inputs.feedback }}
         
-        Provide a helpful, clear and concise response to this query in the context of this PR. Focus on giving accurate, actionable advice or explanations. Include code examples when appropriate.
+        Provide a helpful, clear and concise response to this query in the context of this PR. Focus on giving accurate, actionable advice or explanations based on the code changes shown in the diff. Include code examples when appropriate.
         EOF
         )
         

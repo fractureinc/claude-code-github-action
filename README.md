@@ -5,7 +5,8 @@ This GitHub Action integrates Claude Code in your GitHub workflows, enabling AI-
 ## Features
 
 - Process PR comments prefixed with "claude:"
-- Provide rich context about the PR to Claude for better responses
+- Provide rich context about the PR to Claude, including file diffs
+- Get AI-powered code analysis and suggestions
 - Simple setup with minimal configuration
 - Uses GitHub CLI and Claude Code CLI for reliability
 
@@ -42,7 +43,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.1.5
+        uses: fractureinc/claude-code-github-action@v0.1.6
         with:
           mode: 'review'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -64,6 +65,17 @@ jobs:
 
 \* Required when mode is 'review'
 
+## Enhanced Context for Claude
+
+With version 0.1.6, Claude now receives complete context for your PRs, including:
+
+- PR metadata (title, description, branch info)
+- List of all files changed
+- Complete diff of all changes in the PR
+- Repository information
+
+This allows Claude to provide much more accurate and helpful responses about your code changes.
+
 ## Example Queries
 
 Here are some example queries you can use with the claude: prefix:
@@ -78,7 +90,10 @@ Here are some example queries you can use with the claude: prefix:
 
 1. The action is triggered when a comment starting with "claude:" is detected on a PR
 2. The action extracts the PR number and the user's query
-3. Using GitHub CLI, the action fetches comprehensive information about the PR and repository
+3. Using GitHub CLI, the action fetches comprehensive information about the PR including:
+   - PR metadata
+   - List of files changed  
+   - Complete diff of all changes
 4. This rich context is provided to Claude along with the user's query
 5. Claude processes the information and provides a helpful response
 6. The response is posted as a comment on the PR

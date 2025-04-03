@@ -1,6 +1,6 @@
 {
   "name": "claude-code-github-action",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "GitHub action for Claude Code Integration in PR comments and reviews",
   "main": "index.js",
   "scripts": {
