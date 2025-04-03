@@ -54,7 +54,8 @@ runs:
       shell: bash
       run: |
         npm install -g @anthropic-ai/claude-code
-        npm install --no-save @actions/core @actions/github axios
+        cd ${{ github.action_path }}
+        npm install @actions/core @actions/github axios
         
     - name: Set up environment variables
       shell: bash
@@ -209,7 +210,8 @@ runs:
     - name: Execute runner script
       shell: bash
       run: |
-        node ${{ github.action_path }}/run.js
+        cd ${{ github.action_path }}
+        node run.js
       env:
         INPUT_MODE: ${{ inputs.mode }}
         INPUT_PR_NUMBER: ${{ inputs.pr-number }}
