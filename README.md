@@ -1,13 +1,14 @@
 # Claude Code GitHub Action
 
-This GitHub Action integrates Claude Code into your workflows, enabling AI-assisted code reviews and intelligent responses to PR comments.
+This GitHub Action integrates Claude, Anthropic's AI assistant, directly into your development workflow. It enables developers to get AI assistance directly within pull requests without switching contexts.
 
 ## Features
 
-- Process user questions in PR comments
-- Analyze pull request changes and provide intelligent reviews
-- Use the latest Claude models from Anthropic
-- Support for both Anthropic API and AWS Bedrock (Claude)
+- Process user questions in PR comments with the `claude:` prefix
+- Analyze PR changes and provide intelligent responses
+- Provide rich context to Claude about the repository and PR
+- Support for both Anthropic API and AWS Bedrock
+- Simple integration with minimal configuration
 
 ## Usage
 
@@ -28,12 +29,11 @@ jobs:
   process-pr-comment:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'issue_comment' && github.event.issue.pull_request && startsWith(github.event.comment.body, 'claude:') }}
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
       - name: Get PR details
         id: pr
         run: |
@@ -45,7 +45,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.1.1
+        uses: fractureinc/claude-code-github-action@v0.1.4
         with:
           mode: 'review'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -57,28 +57,40 @@ jobs:
 
 ## Configuration Options
 
-| Input             | Description                                      | Required | Default                   |
-|-------------------|--------------------------------------------------|----------|---------------------------|
-| `mode`            | Operation mode (review, direct)                  | Yes      | `review`                  |
-| `pr-number`       | Pull request number                              | No       |                           |
-| `feedback`        | User query text                                  | No       |                           |
-| `anthropic-api-key` | Anthropic API key                              | Yes      |                           |
-| `github-token`    | GitHub token for API access                      | Yes      |                           |
-| `model-id`        | Claude model ID to use                           | No       | `claude-3-7-sonnet-20250219` |
-| `use-bedrock`     | Use AWS Bedrock instead of Anthropic API         | No       | `false`                   |
-| `max-tokens`      | Maximum response tokens                          | No       | `4096`                    |
-| `temperature`     | Response temperature (0.0-1.0)                   | No       | `0.7`                     |
-| `output-file`     | Output file path (for direct mode)               | No       | `claude-code-output`      |
+| Input | Description | Required | Default |
+|-------|-------------|----------|---------|
+| `mode` | Operation mode (review, direct) | Yes | `review` |
+| `pr-number` | Pull request number | Yes* | |
+| `feedback` | User query text | Yes | |
+| `anthropic-api-key` | Anthropic API key | Yes | |
+| `github-token` | GitHub token | Yes | |
+| `model-id` | Claude model ID | No | `claude-3-7-sonnet-20250219` |
+| `use-bedrock` | Use AWS Bedrock | No | `false` |
+| `max-tokens` | Maximum response tokens | No | `4096` |
+| `temperature` | Response temperature | No | `0.7` |
+| `output-file` | Output file for direct mode | No | `claude-code-output` |
+
+\* Required if mode is `review`
+
+## Example Queries
+
+Here are some example queries you can use with the `claude:` prefix:
+
+- `claude: Explain the changes in this PR`
+- `claude: Is there any way to optimize this code?`
+- `claude: Suggest tests for these changes`
+- `claude: Help me understand this algorithm`
+- `claude: Review this PR for security issues`
 
 ## Using AWS Bedrock
 
-To use Claude via AWS Bedrock instead of the Anthropic API, set `use-bedrock: true` and configure AWS credentials:
+To use Claude via AWS Bedrock instead of the Anthropic API:
 
 ```yaml
-- name: Process with Claude Code (Bedrock)
-  uses: fractureinc/claude-code-github-action@v0.1.1
+- name: Process with Claude Code via Bedrock
+  uses: fractureinc/claude-code-github-action@v0.1.4
   with:
-    mode: 'review' 
+    mode: 'review'
     pr-number: ${{ steps.pr.outputs.number }}
     feedback: ${{ steps.pr.outputs.feedback }}
     github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -90,9 +102,18 @@ To use Claude via AWS Bedrock instead of the Anthropic API, set `use-bedrock: tr
     BEDROCK_AWS_REGION: us-east-1
 ```
 
+## How It Works
+
+1. The action is triggered when a PR comment starting with `claude:` is detected
+2. The action extracts the PR number and the query text
+3. GitHub CLI is used to fetch detailed information about the PR and repository
+4. Claude is provided with rich context about the repository, PR, and files changed
+5. Claude processes the query and provides a response
+6. The response is posted as a comment on the PR
+
 ## Permissions
 
-Ensure your workflow has the necessary permissions:
+Ensure your workflow has these permissions:
 
 ```yaml
 permissions:
@@ -100,10 +121,6 @@ permissions:
   pull-requests: write
   issues: write
 ```
-
-## Debugging
-
-If you encounter issues, check the workflow logs for detailed error messages. The action outputs the Claude prompt and response for debugging purposes.
 
 ## License
 

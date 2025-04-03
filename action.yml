@@ -1,5 +1,5 @@
 name: 'Claude Code GitHub Action'
-description: 'GitHub action for Claude Code Integration'
+description: 'GitHub action for Claude Code Integration in PR comments'
 branding:
   icon: 'message-square'
   color: 'purple'
@@ -45,19 +45,20 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'
-        
-    - name: Install dependencies
+    - name: Setup GitHub CLI
       shell: bash
       run: |
-        npm install -g @anthropic-ai/claude-code
-        cd ${{ github.action_path }}
-        npm install @actions/core @actions/github axios
+        # Make sure GitHub CLI is available with token
+        echo "${{ inputs.github-token }}" | gh auth login --with-token
         
-    - name: Set up environment variables
+    - name: Install Claude Code CLI
+      shell: bash
+      run: |
+        # Install Claude Code CLI
+        npm install -g @anthropic-ai/claude-code
+        
+    - name: Process PR comment with Claude
+      if: inputs.mode == 'review' || inputs.mode == 'pr-comment'
       shell: bash
       run: |
         # Set Anthropic API key
@@ -81,145 +82,121 @@ runs:
           fi
         fi
         
-    - name: Create runner script
-      shell: bash
-      run: |
-        cat > ${{ github.action_path }}/run.js << 'EOF'
-        const core = require('@actions/core');
-        const github = require('@actions/github');
-        const { exec } = require('child_process');
-        const { promisify } = require('util');
-        const fs = require('fs').promises;
-        const path = require('path');
-        const execAsync = promisify(exec);
+        # Create a temp file for Claude's response
+        RESPONSE_FILE=$(mktemp)
         
-        async function run() {
-          try {
-            const mode = core.getInput('mode');
-            const prNumber = core.getInput('pr-number');
-            const feedback = core.getInput('feedback');
-            const githubToken = core.getInput('github-token');
-            const modelId = core.getInput('model-id');
-            const maxTokens = core.getInput('max-tokens');
-            const temperature = core.getInput('temperature');
-            const useBedrock = core.getInput('use-bedrock') === 'true';
-            
-            console.log(`Running Claude Code in ${mode} mode`);
-            console.log(`Using model: ${modelId}`);
-            
-            const octokit = github.getOctokit(githubToken);
-            const context = github.context;
-            
-            // Basic command with model parameters
-            let claudeCommand = `claude --model ${modelId} --max-tokens ${maxTokens} --temperature ${temperature}`;
-            
-            // Add provider flag if using Bedrock
-            if (useBedrock) {
-              claudeCommand += ' --provider bedrock';
-            }
-            
-            let promptText = '';
-            let responseText = '';
-            
-            if (mode === 'review' || mode === 'pr-comment') {
-              // Get PR details
-              const { data: pullRequest } = await octokit.rest.pulls.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: parseInt(prNumber)
-              });
-              
-              // Get PR files
-              const { data: files } = await octokit.rest.pulls.listFiles({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: parseInt(prNumber)
-              });
-              
-              // Generate context for Claude
-              promptText = `You are reviewing a pull request in the ${context.repo.repo} repository.
-              
-              PR Title: ${pullRequest.title}
-              PR Description: ${pullRequest.body || '(No description provided)'}
-              
-              Files changed in this PR:
-              ${files.map(file => `- ${file.filename} (${file.status}, +${file.additions}/-${file.deletions})`).join('\n')}
-              
-              User query:
-              ${feedback}
-              
-              Provide a helpful, concise response to this query in the context of this PR. Focus on giving actionable advice, explanations, or suggestions based on the code context.`;
-              
-              // Write prompt to temp file
-              const promptFile = path.join(process.env.RUNNER_TEMP || '/tmp', 'claude-prompt.txt');
-              await fs.writeFile(promptFile, promptText);
-              
-              // Run Claude CLI
-              console.log('Sending request to Claude...');
-              const { stdout, stderr } = await execAsync(`${claudeCommand} < ${promptFile}`);
-              responseText = stdout;
-              
-              if (stderr) {
-                console.error(`Claude CLI error: ${stderr}`);
-              }
-              
-              // Post response as PR comment
-              await octokit.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: parseInt(prNumber),
-                body: responseText
-              });
-              
-              console.log('Posted Claude response as PR comment');
-            } else if (mode === 'direct') {
-              // Direct mode - just run Claude against the feedback
-              promptText = feedback;
-              
-              // Write prompt to temp file
-              const promptFile = path.join(process.env.RUNNER_TEMP || '/tmp', 'claude-prompt.txt');
-              await fs.writeFile(promptFile, promptText);
-              
-              // Run Claude CLI
-              console.log('Sending request to Claude...');
-              const { stdout, stderr } = await execAsync(`${claudeCommand} < ${promptFile}`);
-              responseText = stdout;
-              
-              if (stderr) {
-                console.error(`Claude CLI error: ${stderr}`);
-              }
-              
-              // Write to output file
-              const outputFile = core.getInput('output-file');
-              await fs.writeFile(outputFile, responseText);
-              
-              console.log(`Wrote Claude response to ${outputFile}`);
-            } else {
-              throw new Error(`Unsupported mode: ${mode}`);
-            }
-            
-          } catch (error) {
-            core.setFailed(`Action failed: ${error.message}`);
-            console.error(error);
-          }
-        }
+        # Get PR details using GitHub CLI
+        echo "Fetching PR details for PR #${{ inputs.pr-number }}"
+        PR_DETAILS=$(gh pr view ${{ inputs.pr-number }} --json title,body,baseRefName,headRefName,additions,deletions,changedFiles,state)
         
-        run();
+        PR_TITLE=$(echo "$PR_DETAILS" | jq -r '.title')
+        PR_BODY=$(echo "$PR_DETAILS" | jq -r '.body')
+        PR_BASE=$(echo "$PR_DETAILS" | jq -r '.baseRefName')
+        PR_HEAD=$(echo "$PR_DETAILS" | jq -r '.headRefName')
+        PR_STATE=$(echo "$PR_DETAILS" | jq -r '.state')
+        PR_ADDITIONS=$(echo "$PR_DETAILS" | jq -r '.additions')
+        PR_DELETIONS=$(echo "$PR_DETAILS" | jq -r '.deletions')
+        PR_CHANGED_FILES=$(echo "$PR_DETAILS" | jq -r '.changedFiles')
+        
+        # Get list of files changed
+        echo "Fetching files changed in the PR"
+        PR_FILES=$(gh pr view ${{ inputs.pr-number }} --json files)
+        FILES_LIST=$(echo "$PR_FILES" | jq -r '.files[] | "- " + .path + " (" + .status + ", +" + (.additions | tostring) + "/-" + (.deletions | tostring) + ")"')
+        
+        # Get repo information
+        REPO_INFO=$(gh repo view --json name,description,defaultBranchRef,languages)
+        REPO_NAME=$(echo "$REPO_INFO" | jq -r '.name')
+        REPO_DESC=$(echo "$REPO_INFO" | jq -r '.description')
+        REPO_DEFAULT_BRANCH=$(echo "$REPO_INFO" | jq -r '.defaultBranchRef.name')
+        REPO_LANGUAGES=$(echo "$REPO_INFO" | jq -r '.languages[].name' | tr '\n' ', ' | sed 's/,$//')
+        
+        # Build the prompt with rich context
+        PROMPT=$(cat <<EOF
+        You are Claude, an AI assistant helping with code review in GitHub.
+        
+        Repository: $REPO_NAME
+        Repository Description: ${REPO_DESC:-No description provided}
+        Default Branch: $REPO_DEFAULT_BRANCH
+        Languages: ${REPO_LANGUAGES:-Unknown}
+        
+        Pull Request #${{ inputs.pr-number }}: $PR_TITLE
+        PR Description:
+        ${PR_BODY:-No description provided}
+        
+        PR Status: $PR_STATE
+        Branch: $PR_HEAD → $PR_BASE
+        Changes: +$PR_ADDITIONS/-$PR_DELETIONS in $PR_CHANGED_FILES files
+        
+        Files changed in this PR:
+        $FILES_LIST
+        
+        User query:
+        ${{ inputs.feedback }}
+        
+        Provide a helpful, clear and concise response to this query in the context of this PR. Focus on giving accurate, actionable advice or explanations. Include code examples when appropriate.
         EOF
+        )
         
-    - name: Execute runner script
+        # Set up the Claude command
+        CLAUDE_CMD="claude"
+        CLAUDE_CMD+=" --model ${{ inputs.model-id }}"
+        CLAUDE_CMD+=" --max-tokens ${{ inputs.max-tokens }}"
+        CLAUDE_CMD+=" --temperature ${{ inputs.temperature }}"
+        
+        if [[ "${{ inputs.use-bedrock }}" == "true" ]]; then
+          CLAUDE_CMD+=" --provider bedrock"
+        fi
+        
+        # Run Claude and capture output
+        echo "Sending request to Claude..."
+        echo "$PROMPT" | $CLAUDE_CMD -p - > "$RESPONSE_FILE"
+        
+        # Post response as PR comment
+        echo "Posting Claude's response as PR comment"
+        gh pr comment ${{ inputs.pr-number }} --body-file "$RESPONSE_FILE"
+        
+        # Clean up
+        rm -f "$RESPONSE_FILE"
+        
+        echo "Claude's response posted successfully!"
+        
+    - name: Process direct request with Claude
+      if: inputs.mode == 'direct'
       shell: bash
       run: |
-        cd ${{ github.action_path }}
-        node run.js
-      env:
-        INPUT_MODE: ${{ inputs.mode }}
-        INPUT_PR_NUMBER: ${{ inputs.pr-number }}
-        INPUT_FEEDBACK: ${{ inputs.feedback }}
-        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
-        INPUT_MODEL_ID: ${{ inputs.model-id }}
-        INPUT_MAX_TOKENS: ${{ inputs.max-tokens }}
-        INPUT_TEMPERATURE: ${{ inputs.temperature }}
-        INPUT_USE_BEDROCK: ${{ inputs.use-bedrock }}
-        INPUT_OUTPUT_FILE: ${{ inputs.output-file }}
-        GITHUB_TOKEN: ${{ inputs.github-token }}
+        # Set Anthropic API key
+        export ANTHROPIC_API_KEY="${{ inputs.anthropic-api-key }}"
+        
+        # Set up AWS environment if using Bedrock
+        if [[ "${{ inputs.use-bedrock }}" == "true" ]]; then
+          if [[ -n "${{ env.BEDROCK_AWS_ACCESS_KEY_ID }}" && -n "${{ env.BEDROCK_AWS_SECRET_ACCESS_KEY }}" ]]; then
+            mkdir -p ~/.aws
+            cat > ~/.aws/credentials << EOF
+        [default]
+        aws_access_key_id = ${{ env.BEDROCK_AWS_ACCESS_KEY_ID }}
+        aws_secret_access_key = ${{ env.BEDROCK_AWS_SECRET_ACCESS_KEY }}
+        EOF
+            if [[ -n "${{ env.BEDROCK_AWS_REGION }}" ]]; then
+              cat > ~/.aws/config << EOF
+        [default]
+        region = ${{ env.BEDROCK_AWS_REGION }}
+        EOF
+            fi
+          fi
+        fi
+        
+        # Set up the Claude command
+        CLAUDE_CMD="claude"
+        CLAUDE_CMD+=" --model ${{ inputs.model-id }}"
+        CLAUDE_CMD+=" --max-tokens ${{ inputs.max-tokens }}"
+        CLAUDE_CMD+=" --temperature ${{ inputs.temperature }}"
+        
+        if [[ "${{ inputs.use-bedrock }}" == "true" ]]; then
+          CLAUDE_CMD+=" --provider bedrock"
+        fi
+        
+        # Run Claude and capture output
+        echo "Sending request to Claude..."
+        echo "${{ inputs.feedback }}" | $CLAUDE_CMD -p - > "${{ inputs.output-file }}"
+        
+        echo "Claude's response written to ${{ inputs.output-file }}"
