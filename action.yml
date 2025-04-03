@@ -53,7 +53,7 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        npm install -g @anthropic-ai/claude-cli@latest
+        npm install -g @anthropic-ai/claude-code
         npm install --no-save @actions/core @actions/github axios
         
     - name: Set up environment variables
