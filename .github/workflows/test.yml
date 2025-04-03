@@ -29,7 +29,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.1.3
+        uses: fractureinc/claude-code-github-action@v0.1.4
         with:
           mode: 'review'
           pr-number: ${{ steps.pr.outputs.number }}
