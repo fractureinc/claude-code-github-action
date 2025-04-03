@@ -36,4 +36,3 @@ jobs:
           feedback: ${{ steps.pr.outputs.feedback }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          model-id: 'claude-3-7-sonnet-20250219'
