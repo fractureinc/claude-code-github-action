@@ -1,0 +1,31 @@
+{
+  "name": "claude-code-github-action",
+  "version": "0.1.1",
+  "description": "GitHub action for Claude Code Integration",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fractureinc/claude-code-github-action.git"
+  },
+  "keywords": [
+    "github",
+    "action",
+    "claude",
+    "code",
+    "anthropic"
+  ],
+  "author": "Fracture Inc",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fractureinc/claude-code-github-action/issues"
+  },
+  "homepage": "https://github.com/fractureinc/claude-code-github-action#readme",
+  "dependencies": {
+    "@anthropic-ai/claude-cli": "latest",
+    "@actions/core": "^1.10.0",
+    "@actions/github": "^5.1.1"
+  }
+}

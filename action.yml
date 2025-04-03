@@ -1,0 +1,209 @@
+name: 'Claude Code GitHub Action'
+description: 'GitHub action for Claude Code Integration'
+inputs:
+  mode:
+    description: 'The mode to run the action in'
+    required: true
+    default: 'pr-comment'
+  version:
+    description: 'The Claude model version to use'
+    required: false
+    default: 'claude-3-opus-20240229'
+  system-prompt:
+    description: 'The system prompt to use'
+    required: false
+  github-token:
+    description: 'GitHub token'
+    required: false
+    default: ${{ github.token }}
+  issue-number:
+    description: 'Issue number'
+    required: false
+  comment-id:
+    description: 'Comment ID'
+    required: false
+  comment:
+    description: 'Comment text'
+    required: false
+  request:
+    description: 'The request to send to Claude'
+    required: false
+  prompt-template:
+    description: 'Prompt template'
+    required: false
+  file:
+    description: 'Path to a file containing the prompt'
+    required: false
+  max-tokens:
+    description: 'Maximum number of tokens to generate'
+    required: false
+    default: '4096'
+  temperature:
+    description: 'Temperature'
+    required: false
+    default: '0.7'
+  raw:
+    description: 'If true, the system outputs raw markdown content, otherwise renders to HTML'
+    required: false
+    default: 'false'
+  debug:
+    description: 'If true, the full prompt and raw response are included in the output'
+    required: false
+    default: 'false'
+  input-file:
+    description: 'Path to a file containing the input'
+    required: false
+  output-file:
+    description: 'Path to write the output to'
+    required: false
+    default: 'claude-code/issue'
+  model-provider:
+    description: 'The model provider to use'
+    required: false
+    default: 'anthropic'
+  pr-url:
+    description: 'The PR URL'
+    required: false
+  comment-history:
+    description: 'The comment history'
+    required: false
+  source-code:
+    description: 'The source code'
+    required: false
+    
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+    
+    - name: Install dependencies
+      shell: bash
+      run: |
+        cd ${{ github.action_path }}
+        npm ci
+        if [[ -f ".env" ]]; then
+          echo "Loading .env file"
+          set -o allexport
+          source .env
+          set +o allexport
+        fi
+
+    - name: Install claude_cli
+      shell: bash
+      run: |
+        npm install -g @anthropic-ai/claude-cli@latest
+        
+    - name: Set up AWS credentials
+      shell: bash
+      run: |
+        if [[ "${{ inputs.model-provider }}" == "bedrock" ]]; then
+          if [[ -n "${{ github.BEDROCK_AWS_ACCESS_KEY_ID }}" && -n "${{ github.BEDROCK_AWS_SECRET_ACCESS_KEY }}" ]]; then
+            mkdir -p ~/.aws
+            cat > ~/.aws/credentials << EOF
+        [default]
+        aws_access_key_id = ${{ github.BEDROCK_AWS_ACCESS_KEY_ID }}
+        aws_secret_access_key = ${{ github.BEDROCK_AWS_SECRET_ACCESS_KEY }}
+        EOF
+            if [[ -n "${{ github.BEDROCK_AWS_REGION }}" ]]; then
+              cat > ~/.aws/config << EOF
+        [default]
+        region = ${{ github.BEDROCK_AWS_REGION }}
+        EOF
+            fi
+          else
+            echo "AWS credentials not provided for Bedrock"
+            exit 1
+          fi
+        fi
+    
+    - name: Set up Anthropic credentials
+      shell: bash
+      run: |
+        if [[ "${{ inputs.model-provider }}" == "anthropic" ]]; then
+          if [[ -n "${{ github.ANTHROPIC_API_KEY }}" ]]; then
+            export ANTHROPIC_API_KEY=${{ github.ANTHROPIC_API_KEY }}
+          else
+            echo "ANTHROPIC_API_KEY not provided"
+            exit 1
+          fi
+        fi
+    
+    - name: Process PR Comment
+      if: inputs.mode == 'pr-comment'
+      shell: bash
+      run: |
+        cd ${{ github.action_path }}
+        if [[ -n "${{ inputs.pr-url }}" ]]; then
+          PR_URL="${{ inputs.pr-url }}"
+          PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+          echo "Processing PR #$PR_NUMBER: $PR_URL"
+          
+          # Fetch PR details
+          PR_DETAILS=$(curl -s \
+            -H "Authorization: token ${{ github.token }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "${{ github.api_url }}/repos/${{ github.repository }}/pulls/$PR_NUMBER")
+          
+          # Get the head branch name and SHA
+          HEAD_REF=$(echo "$PR_DETAILS" | jq -r .head.ref)
+          HEAD_SHA=$(echo "$PR_DETAILS" | jq -r .head.sha)
+          echo "PR head branch: $HEAD_REF, SHA: $HEAD_SHA"
+          
+          # Fetch PR files changed
+          PR_FILES=$(curl -s \
+            -H "Authorization: token ${{ github.token }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "${{ github.api_url }}/repos/${{ github.repository }}/pulls/$PR_NUMBER/files")
+          
+          echo "Files changed in PR:"
+          echo "$PR_FILES" | jq -r '.[].filename'
+          
+          # Run claude-cli with PR context
+          node index.js
+        else
+          echo "PR URL not provided"
+          exit 1
+        fi
+      
+    - name: Process Comment
+      if: inputs.mode == 'comment'
+      shell: bash
+      run: |
+        cd ${{ github.action_path }}
+        if [[ -n "${{ inputs.comment }}" ]]; then
+          echo "Processing comment: ${{ inputs.comment }}"
+          
+          # Run claude-cli with comment context
+          if [[ -n "${{ inputs.comment-id }}" ]]; then
+            COMMENT_ID="${{ inputs.comment-id }}"
+            COMMENT_DETAILS=$(curl -s \
+              -H "Authorization: token ${{ github.token }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "${{ github.api_url }}/repos/${{ github.repository }}/issues/comments/$COMMENT_ID")
+            
+            echo "Comment details: $COMMENT_DETAILS"
+          fi
+          
+          node index.js
+        else
+          echo "Comment text not provided"
+          exit 1
+        fi
+      
+    - name: Process Direct Request
+      if: inputs.mode == 'direct'
+      shell: bash
+      run: |
+        cd ${{ github.action_path }}
+        if [[ -n "${{ inputs.request }}" ]]; then
+          echo "Processing direct request"
+          
+          # Run claude-cli with direct request
+          node index.js
+        else
+          echo "Request not provided"
+          exit 1
+        fi
