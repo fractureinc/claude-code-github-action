@@ -1,6 +1,6 @@
 {
   "name": "claude-code-github-action",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "GitHub action for Claude Code Integration in PR comments and reviews",
   "main": "run.js",
   "scripts": {
@@ -29,7 +29,6 @@
   "dependencies": {
     "@actions/core": "^1.10.1",
     "@actions/github": "^6.0.0",
-    "@anthropic-ai/claude-code": "latest",
     "axios": "^1.6.7"
   }
 }
