@@ -1,5 +1,9 @@
 #!/bin/bash
+# Enable strict error checking
 set -e
+
+# Enable debug mode for shell script
+set -x
 
 # Get input parameters
 ISSUE_NUMBER=$1
