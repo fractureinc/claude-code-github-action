@@ -9,7 +9,7 @@ on:
 # This demonstrates how to use the reusable workflow for comment-based interactions
 jobs:
   claude-integration:
-    uses: fractureinc/claude-code-github-action/.github/workflows/claude-full.yml@v0.5.1
+    uses: fractureinc/claude-code-github-action/.github/workflows/claude-full.yml@v0.5.2
     with:
       # Optional customizations:
       issue-label: 'claude-fix'  # The label used to trigger issue fixes
