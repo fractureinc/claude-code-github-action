@@ -50,7 +50,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.3.0
+        uses: fractureinc/claude-code-github-action@v0.3.5
         with:
           mode: 'review'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -82,7 +82,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions
-        uses: fractureinc/claude-code-github-action@v0.3.0
+        uses: fractureinc/claude-code-github-action@v0.3.5
         with:
           mode: 'suggest'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -116,7 +116,7 @@ jobs:
 
 ## Enhanced Context for Claude
 
-With version 0.3.0, Claude now receives complete context for your PRs and issues, including:
+With version 0.3.5, Claude now receives complete context for your PRs and issues, including:
 
 - PR metadata (title, description, branch info)
 - Issue details (title, description, labels)
@@ -236,12 +236,12 @@ jobs:
           git config --global user.email "claude-bot@example.com"
           
       - name: Process issue with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.3.0
+        uses: fractureinc/claude-code-github-action@v0.3.5
         with:
           mode: 'issue-fix'
           issue-number: ${{ github.event.issue.number }}
           repo-owner: ${{ github.repository_owner }}
-          repo-name: ${{ github.repository }}
+          repo-name: ${{ github.event.repository.name }}
           branch-prefix: 'fix'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
