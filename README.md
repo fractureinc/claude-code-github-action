@@ -35,7 +35,7 @@ jobs:
       issue-label: 'claude-fix'  # Optional: customize the trigger label
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 **File: `.github/workflows/claude-issue-fix.yml`**
@@ -53,7 +53,7 @@ jobs:
       issue-label: 'claude-fix'  # Must match your chosen label
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### 2. Use Claude in PRs and Issues
@@ -108,7 +108,7 @@ jobs:
       strict-mode: true          # When false, allows Claude to add improvements
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### Label-Based Integration (`claude-label-fix.yml`)
@@ -124,7 +124,7 @@ jobs:
       debug-mode: false          # Enable verbose logging
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 Only repo maintainers with write access can add labels, providing security control over which issues Claude will fix.
