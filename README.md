@@ -135,6 +135,7 @@ Sends a query directly to Claude and saves the response to a file without PR con
 - `claude: Are there any security issues in these changes?`
 - `claude: How would you refactor this to be more maintainable?`
 - `claude: What tests should be added for this code?`
+- `claude: Analyze the performance implications of these changes`
 
 ### Suggest Mode Examples (prefix: `claude-suggest:`)
 
