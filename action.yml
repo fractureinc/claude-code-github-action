@@ -6,7 +6,7 @@ branding:
 
 inputs:
   mode:
-    description: 'The mode to run the action in (review, pr-comment, comment, direct)'
+    description: 'The mode to run the action in (review, pr-comment, suggest, direct)'
     required: true
     default: 'review'
   pr-number:
@@ -29,6 +29,9 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
     - name: Setup GitHub CLI
       shell: bash
       run: |
@@ -41,101 +44,23 @@ runs:
         # Install Claude Code CLI
         npm install -g @anthropic-ai/claude-code
         
-    - name: Process PR comment with Claude
+    - name: Process Review Request
       if: inputs.mode == 'review' || inputs.mode == 'pr-comment'
       shell: bash
       run: |
-        # Set Anthropic API key
-        export ANTHROPIC_API_KEY="${{ inputs.anthropic-api-key }}"
+        chmod +x ${{ github.action_path }}/scripts/review-mode.sh
+        ${{ github.action_path }}/scripts/review-mode.sh "${{ inputs.pr-number }}" "${{ inputs.feedback }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}"
         
-        # Create a temp file for Claude's response
-        RESPONSE_FILE=$(mktemp)
+    - name: Process Suggested Changes
+      if: inputs.mode == 'suggest'
+      shell: bash
+      run: |
+        chmod +x ${{ github.action_path }}/scripts/suggest-mode.sh
+        ${{ github.action_path }}/scripts/suggest-mode.sh "${{ inputs.pr-number }}" "${{ inputs.feedback }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}"
         
-        # Get PR details using GitHub CLI
-        echo "Fetching PR details for PR #${{ inputs.pr-number }}"
-        PR_DETAILS=$(gh pr view ${{ inputs.pr-number }} --json title,body,baseRefName,headRefName,additions,deletions,changedFiles,state)
-        
-        PR_TITLE=$(echo "$PR_DETAILS" | jq -r '.title')
-        PR_BODY=$(echo "$PR_DETAILS" | jq -r '.body')
-        PR_BASE=$(echo "$PR_DETAILS" | jq -r '.baseRefName')
-        PR_HEAD=$(echo "$PR_DETAILS" | jq -r '.headRefName')
-        PR_STATE=$(echo "$PR_DETAILS" | jq -r '.state')
-        PR_ADDITIONS=$(echo "$PR_DETAILS" | jq -r '.additions')
-        PR_DELETIONS=$(echo "$PR_DETAILS" | jq -r '.deletions')
-        PR_CHANGED_FILES=$(echo "$PR_DETAILS" | jq -r '.changedFiles')
-        
-        # Get list of files changed
-        echo "Fetching files changed in the PR"
-        PR_FILES=$(gh pr view ${{ inputs.pr-number }} --json files)
-        
-        # Get file content diffs
-        echo "Fetching file content diffs"
-        PR_DIFF=$(gh pr diff ${{ inputs.pr-number }})
-        
-        # Get summary of files changed for the PR metadata
-        FILES_LIST=$(echo "$PR_FILES" | jq -r '.files[] | "- " + .path + " (" + .status + ", +" + (.additions | tostring) + "/-" + (.deletions | tostring) + ")"')
-        
-        # Get repo information
-        REPO_INFO=$(gh repo view --json name,description,defaultBranchRef,languages)
-        REPO_NAME=$(echo "$REPO_INFO" | jq -r '.name')
-        REPO_DESC=$(echo "$REPO_INFO" | jq -r '.description')
-        REPO_DEFAULT_BRANCH=$(echo "$REPO_INFO" | jq -r '.defaultBranchRef.name')
-        REPO_LANGUAGES=$(echo "$REPO_INFO" | jq -r '.languages[].name' | tr '\n' ', ' | sed 's/,$//')
-        
-        # Build the prompt with rich context
-        PROMPT=$(cat <<EOF
-        You are Claude, an AI assistant helping with code review in GitHub.
-        
-        Repository: $REPO_NAME
-        Repository Description: ${REPO_DESC:-No description provided}
-        Default Branch: $REPO_DEFAULT_BRANCH
-        Languages: ${REPO_LANGUAGES:-Unknown}
-        
-        Pull Request #${{ inputs.pr-number }}: $PR_TITLE
-        PR Description:
-        ${PR_BODY:-No description provided}
-        
-        PR Status: $PR_STATE
-        Branch: $PR_HEAD → $PR_BASE
-        Changes: +$PR_ADDITIONS/-$PR_DELETIONS in $PR_CHANGED_FILES files
-        
-        Files changed in this PR:
-        $FILES_LIST
-        
-        Diff of changes:
-        \`\`\`diff
-        $PR_DIFF
-        \`\`\`
-        
-        User query:
-        ${{ inputs.feedback }}
-        
-        Provide a helpful, clear and concise response to this query in the context of this PR. Focus on giving accurate, actionable advice or explanations based on the code changes shown in the diff. Include code examples when appropriate.
-        EOF
-        )
-        
-        # Run Claude CLI
-        echo "Sending request to Claude..."
-        echo "$PROMPT" | claude -p - > "$RESPONSE_FILE"
-        
-        # Post response as PR comment
-        echo "Posting Claude's response as PR comment"
-        gh pr comment ${{ inputs.pr-number }} --body-file "$RESPONSE_FILE"
-        
-        # Clean up
-        rm -f "$RESPONSE_FILE"
-        
-        echo "Claude's response posted successfully!"
-        
-    - name: Process direct request with Claude
+    - name: Process Direct Request
       if: inputs.mode == 'direct'
       shell: bash
       run: |
-        # Set Anthropic API key
-        export ANTHROPIC_API_KEY="${{ inputs.anthropic-api-key }}"
-        
-        # Run Claude CLI and capture output
-        echo "Sending request to Claude..."
-        echo "${{ inputs.feedback }}" | claude -p - > "${{ inputs.output-file }}"
-        
-        echo "Claude's response written to ${{ inputs.output-file }}"
+        chmod +x ${{ github.action_path }}/scripts/direct-mode.sh
+        ${{ github.action_path }}/scripts/direct-mode.sh "${{ inputs.feedback }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.output-file }}"
