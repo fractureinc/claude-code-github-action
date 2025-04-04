@@ -1,0 +1,40 @@
+name: Claude Code Issue Fix
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  process-issue-fix:
+    runs-on: ubuntu-latest
+    # Only run on issues with the 'claude-fix' label
+    if: ${{ github.event.label.name == 'claude-fix' }}
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup GitHub CLI
+        run: |
+          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Setup git user
+        run: |
+          git config --global user.name "Claude Code Bot"
+          git config --global user.email "claude-bot@example.com"
+          
+      - name: Process issue with Claude Code
+        uses: fractureinc/claude-code-github-action@v0.3.0
+        with:
+          mode: 'issue-fix'
+          issue-number: ${{ github.event.issue.number }}
+          repo-owner: ${{ github.repository_owner }}
+          repo-name: ${{ github.repository }}
+          branch-prefix: 'fix'
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

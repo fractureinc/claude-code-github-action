@@ -6,12 +6,25 @@ branding:
 
 inputs:
   mode:
-    description: 'The mode to run the action in (review, suggest, suggest-review, direct)'
+    description: 'The mode to run the action in (review, suggest, suggest-review, issue-fix, direct)'
     required: true
     default: 'review'
   pr-number:
-    description: 'Pull request number'
+    description: 'Pull request number (for PR-related modes)'
     required: false
+  issue-number:
+    description: 'Issue number (for issue-fix mode)'
+    required: false
+  repo-owner:
+    description: 'Owner of the repository (for issue-fix mode)'
+    required: false
+  repo-name:
+    description: 'Name of the repository (for issue-fix mode)'
+    required: false
+  branch-prefix:
+    description: 'Prefix for the feature branch created for issue fixes'
+    required: false
+    default: 'fix'
   feedback:
     description: 'The feedback text from the comment'
     required: false
@@ -84,3 +97,10 @@ runs:
       run: |
         chmod +x ${{ github.action_path }}/scripts/suggest-review-mode.sh
         ${{ github.action_path }}/scripts/suggest-review-mode.sh "${{ inputs.pr-number }}" "${{ inputs.feedback }}" "${{ inputs.file-path }}" "${{ inputs.line-number }}" "${{ inputs.comment-id }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}" "${{ inputs.strict-mode }}"
+        
+    - name: Process Issue Fix
+      if: inputs.mode == 'issue-fix'
+      shell: bash
+      run: |
+        chmod +x ${{ github.action_path }}/scripts/issue-fix-mode.sh
+        ${{ github.action_path }}/scripts/issue-fix-mode.sh "${{ inputs.issue-number }}" "${{ inputs.repo-owner }}" "${{ inputs.repo-name }}" "${{ inputs.branch-prefix }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}"
