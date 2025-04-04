@@ -46,9 +46,17 @@ echo "Branch Prefix: ${BRANCH_PREFIX:-fix}"
 echo "$GITHUB_TOKEN" | gh auth login --with-token
 export ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY"
 
-# Create temp files for Claude's responses
-RESPONSE_FILE=$(mktemp)
-FIX_DETAILS_FILE=$(mktemp)
+# Create temp files with descriptive names for better debugging
+RESPONSE_FILE=$(mktemp -t "claude_analysis_XXXXXX")
+FIX_DETAILS_FILE=$(mktemp -t "claude_fix_details_XXXXXX")
+
+# Create a log file for debugging
+LOG_FILE=$(mktemp -t "claude_issue_fix_log_XXXXXX")
+exec > >(tee -a "$LOG_FILE") 2>&1
+echo "Starting issue-fix mode at $(date)"
+echo "Log file: $LOG_FILE"
+echo "Response file: $RESPONSE_FILE"
+echo "Fix details file: $FIX_DETAILS_FILE"
 
 # Get current date for the branch name
 DATE=$(date +%Y%m%d%H%M%S)
@@ -109,12 +117,22 @@ If you need to see specific files first, indicate which ones you need to examine
 EOF
 )
 
-# Run Claude CLI to analyze the issue
+# Run Claude CLI to analyze the issue using a temp file for the prompt
 echo "Sending request to Claude for issue analysis..."
-if ! echo "$ANALYZE_PROMPT" | claude -p - > "$RESPONSE_FILE"; then
+
+# Create a temporary file for the prompt
+PROMPT_FILE=$(mktemp)
+echo "$ANALYZE_PROMPT" > "$PROMPT_FILE"
+
+# Use claude with the -f flag to read from a file
+if ! claude -f "$PROMPT_FILE" > "$RESPONSE_FILE"; then
   echo "Error: Claude API request failed. Check your API key and connectivity."
+  cat "$PROMPT_FILE" | head -20  # Show part of the prompt for debugging
   exit 1
 fi
+
+# Clean up the prompt file
+rm -f "$PROMPT_FILE"
 
 # Parse Claude's response to extract files to examine
 FILES_TO_EXAMINE=$(grep -Eo "Files Involved:.*" -A 20 "$RESPONSE_FILE" | grep -v "Proposed Changes:" | grep -v "Testing Plan:" | grep "/" | sed -E 's/^[ -]*([^ ].*)/\1/' | sed -E 's/ *$//' | grep -v "^$")
@@ -164,9 +182,21 @@ If you need to create a completely new file, specify the full file path and prov
 EOF
 )
 
-# Run Claude CLI to implement the fix
+# Run Claude CLI to implement the fix using a temp file for the prompt
 echo "Sending request to Claude for implementation details..."
-echo "$IMPLEMENT_PROMPT" | claude -p - > "$FIX_DETAILS_FILE"
+
+# Create a temporary file for the prompt
+IMPL_PROMPT_FILE=$(mktemp)
+echo "$IMPLEMENT_PROMPT" > "$IMPL_PROMPT_FILE"
+
+# Use claude with the -f flag to read from a file
+if ! claude -f "$IMPL_PROMPT_FILE" > "$FIX_DETAILS_FILE"; then
+  echo "Error: Claude API request failed when generating implementation details."
+  exit 1
+fi
+
+# Clean up the prompt file
+rm -f "$IMPL_PROMPT_FILE"
 
 # Parse Claude's response to extract file paths and changes
 FILES_TO_MODIFY=$(grep -o "For file [^ ]*:" "$FIX_DETAILS_FILE" | sed -E 's/For file ([^:]*):$/\1/')
@@ -288,7 +318,19 @@ EOF
 echo "Adding comment to issue #$ISSUE_NUMBER"
 gh issue comment "$ISSUE_NUMBER" --repo "$FULL_REPO" --body "$ISSUE_COMMENT"
 
-# Clean up temp files
+# Keep log files for debugging but clean up other temp files
+# Copy log files to a known location for debugging
+cp "$RESPONSE_FILE" "/tmp/claude_analysis_$ISSUE_NUMBER.txt" || true
+cp "$FIX_DETAILS_FILE" "/tmp/claude_fix_details_$ISSUE_NUMBER.txt" || true
+cp "$LOG_FILE" "/tmp/claude_issue_fix_log_$ISSUE_NUMBER.txt" || true
+
+echo "Log files saved to /tmp/ for debugging"
+echo "Analysis: /tmp/claude_analysis_$ISSUE_NUMBER.txt"
+echo "Fix details: /tmp/claude_fix_details_$ISSUE_NUMBER.txt"
+echo "Full log: /tmp/claude_issue_fix_log_$ISSUE_NUMBER.txt"
+
+# Clean up original temp files
 rm -f "$RESPONSE_FILE" "$FIX_DETAILS_FILE"
 
 echo "Claude Code has created a fix for issue #$ISSUE_NUMBER in PR: $PR_URL"
+echo "Completed at $(date)"
