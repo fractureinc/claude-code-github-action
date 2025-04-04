@@ -39,6 +39,17 @@ if [ -z "$GITHUB_TOKEN" ]; then
   exit 1
 fi
 
+# Check for required tools
+if ! command -v jq &> /dev/null; then
+  echo "Error: jq is required but not installed"
+  exit 1
+fi
+
+if ! command -v gh &> /dev/null; then
+  echo "Error: GitHub CLI (gh) is required but not installed"
+  exit 1
+fi
+
 # Log parameter values for debugging (excluding sensitive info)
 echo "Running issue-fix-mode with parameters:"
 echo "Issue Number: $ISSUE_NUMBER"
@@ -76,20 +87,65 @@ FIX_BRANCH="${BRANCH_PREFIX:-fix}-issue-${ISSUE_NUMBER}-${DATE}"
 # Get issue details
 echo "Fetching issue #$ISSUE_NUMBER details"
 # Make sure we're using the correct repo format for the gh cli
-FULL_REPO="$REPO_OWNER/$REPO_NAME"
+# Handle both full repo format (owner/name) and just name format
+if [[ "$REPO_NAME" == *"/"* ]]; then
+  # REPO_NAME already contains owner/name format
+  FULL_REPO="$REPO_NAME"
+else
+  # Need to construct owner/name format
+  FULL_REPO="$REPO_OWNER/$REPO_NAME"
+fi
 echo "Using repository: $FULL_REPO"
-ISSUE_DETAILS=$(gh issue view $ISSUE_NUMBER --repo "$FULL_REPO" --json title,body,labels)
+if ! ISSUE_DETAILS=$(gh issue view $ISSUE_NUMBER --repo "$FULL_REPO" --json title,body,labels 2>/tmp/gh_issue_error.log); then
+  echo "Error fetching issue details:"
+  cat /tmp/gh_issue_error.log
+  exit 1
+fi
 
-ISSUE_TITLE=$(echo "$ISSUE_DETAILS" | jq -r '.title')
-ISSUE_BODY=$(echo "$ISSUE_DETAILS" | jq -r '.body')
-ISSUE_LABELS=$(echo "$ISSUE_DETAILS" | jq -r '.labels[].name' | tr '\n' ',' | sed 's/,$//')
+# Extract data from JSON with error handling
+if ! ISSUE_TITLE=$(echo "$ISSUE_DETAILS" | jq -r '.title' 2>/dev/null); then
+  echo "Error: Failed to extract issue title from JSON response"
+  echo "JSON response: $ISSUE_DETAILS"
+  exit 1
+fi
+
+if ! ISSUE_BODY=$(echo "$ISSUE_DETAILS" | jq -r '.body' 2>/dev/null); then
+  echo "Error: Failed to extract issue body from JSON response"
+  echo "JSON response: $ISSUE_DETAILS"
+  exit 1
+fi
+
+if ! ISSUE_LABELS=$(echo "$ISSUE_DETAILS" | jq -r '.labels[].name' 2>/dev/null | tr '\n' ',' | sed 's/,$//' 2>/dev/null); then
+  echo "Warning: Failed to extract issue labels or no labels found"
+  ISSUE_LABELS="none"
+fi
+
+echo "Successfully extracted issue data: Title='$ISSUE_TITLE', Labels='$ISSUE_LABELS'"
 
 # Get repo information
 echo "Fetching repository information"
-REPO_INFO=$(gh repo view "$FULL_REPO" --json name,description,defaultBranchRef,languages)
-REPO_DESC=$(echo "$REPO_INFO" | jq -r '.description')
-DEFAULT_BRANCH=$(echo "$REPO_INFO" | jq -r '.defaultBranchRef.name')
-REPO_LANGUAGES=$(echo "$REPO_INFO" | jq -r '.languages[].name' | tr '\n' ', ' | sed 's/,$//')
+# Use same FULL_REPO format from above
+echo "Using repository for repo info: $FULL_REPO"
+if ! REPO_INFO=$(gh repo view "$FULL_REPO" --json name,description,defaultBranchRef,languages 2>/tmp/gh_repo_error.log); then
+  echo "Error fetching repository information:"
+  cat /tmp/gh_repo_error.log
+  exit 1
+fi
+# Extract repo data with error handling
+if ! DEFAULT_BRANCH=$(echo "$REPO_INFO" | jq -r '.defaultBranchRef.name' 2>/dev/null); then
+  echo "Error: Failed to extract default branch information"
+  echo "JSON response: $REPO_INFO"
+  exit 1
+fi
+
+REPO_DESC=$(echo "$REPO_INFO" | jq -r '.description // "No description"' 2>/dev/null)
+
+if ! REPO_LANGUAGES=$(echo "$REPO_INFO" | jq -r '.languages[].name' 2>/dev/null | tr '\n' ', ' | sed 's/,$//' 2>/dev/null); then
+  echo "Warning: Failed to extract repo languages or no languages found"
+  REPO_LANGUAGES="unknown"
+fi
+
+echo "Successfully extracted repo data: Default branch='$DEFAULT_BRANCH', Languages='$REPO_LANGUAGES'"
 
 # Create a new branch for the fix
 echo "Creating a new branch: $FIX_BRANCH"
