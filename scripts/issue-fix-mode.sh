@@ -9,6 +9,39 @@ BRANCH_PREFIX=$4
 ANTHROPIC_API_KEY=$5
 GITHUB_TOKEN=$6
 
+# Validate required inputs
+if [ -z "$ISSUE_NUMBER" ]; then
+  echo "Error: Missing issue number"
+  exit 1
+fi
+
+if [ -z "$REPO_OWNER" ]; then
+  echo "Error: Missing repository owner"
+  exit 1
+fi
+
+if [ -z "$REPO_NAME" ]; then
+  echo "Error: Missing repository name"
+  exit 1
+fi
+
+if [ -z "$ANTHROPIC_API_KEY" ]; then
+  echo "Error: Missing Anthropic API key"
+  exit 1
+fi
+
+if [ -z "$GITHUB_TOKEN" ]; then
+  echo "Error: Missing GitHub token"
+  exit 1
+fi
+
+# Log parameter values for debugging (excluding sensitive info)
+echo "Running issue-fix-mode with parameters:"
+echo "Issue Number: $ISSUE_NUMBER"
+echo "Repo Owner: $REPO_OWNER"
+echo "Repo Name: $REPO_NAME"
+echo "Branch Prefix: ${BRANCH_PREFIX:-fix}"
+
 # Set up authentication
 echo "$GITHUB_TOKEN" | gh auth login --with-token
 export ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY"
@@ -23,14 +56,18 @@ FIX_BRANCH="${BRANCH_PREFIX:-fix}-issue-${ISSUE_NUMBER}-${DATE}"
 
 # Get issue details
 echo "Fetching issue #$ISSUE_NUMBER details"
-ISSUE_DETAILS=$(gh issue view $ISSUE_NUMBER --json title,body,labels)
+# Make sure we're using the correct repo format for the gh cli
+FULL_REPO="$REPO_OWNER/$REPO_NAME"
+echo "Using repository: $FULL_REPO"
+ISSUE_DETAILS=$(gh issue view $ISSUE_NUMBER --repo "$FULL_REPO" --json title,body,labels)
 
 ISSUE_TITLE=$(echo "$ISSUE_DETAILS" | jq -r '.title')
 ISSUE_BODY=$(echo "$ISSUE_DETAILS" | jq -r '.body')
 ISSUE_LABELS=$(echo "$ISSUE_DETAILS" | jq -r '.labels[].name' | tr '\n' ',' | sed 's/,$//')
 
 # Get repo information
-REPO_INFO=$(gh repo view --json name,description,defaultBranchRef,languages)
+echo "Fetching repository information"
+REPO_INFO=$(gh repo view "$FULL_REPO" --json name,description,defaultBranchRef,languages)
 REPO_DESC=$(echo "$REPO_INFO" | jq -r '.description')
 DEFAULT_BRANCH=$(echo "$REPO_INFO" | jq -r '.defaultBranchRef.name')
 REPO_LANGUAGES=$(echo "$REPO_INFO" | jq -r '.languages[].name' | tr '\n' ', ' | sed 's/,$//')
@@ -74,7 +111,10 @@ EOF
 
 # Run Claude CLI to analyze the issue
 echo "Sending request to Claude for issue analysis..."
-echo "$ANALYZE_PROMPT" | claude -p - > "$RESPONSE_FILE"
+if ! echo "$ANALYZE_PROMPT" | claude -p - > "$RESPONSE_FILE"; then
+  echo "Error: Claude API request failed. Check your API key and connectivity."
+  exit 1
+fi
 
 # Parse Claude's response to extract files to examine
 FILES_TO_EXAMINE=$(grep -Eo "Files Involved:.*" -A 20 "$RESPONSE_FILE" | grep -v "Proposed Changes:" | grep -v "Testing Plan:" | grep "/" | sed -E 's/^[ -]*([^ ].*)/\1/' | sed -E 's/ *$//' | grep -v "^$")
@@ -225,7 +265,8 @@ EOF
 )
 
 # Create the PR
-PR_URL=$(gh pr create --title "Fix: $ISSUE_TITLE" --body "$PR_BODY" --base "$DEFAULT_BRANCH" --head "$FIX_BRANCH")
+echo "Creating pull request"
+PR_URL=$(gh pr create --repo "$FULL_REPO" --title "Fix: $ISSUE_TITLE" --body "$PR_BODY" --base "$DEFAULT_BRANCH" --head "$FIX_BRANCH")
 
 # Add a comment to the issue
 ISSUE_COMMENT=$(cat <<EOF
@@ -244,7 +285,8 @@ Please review the PR and test the changes to verify they resolve the issue.
 EOF
 )
 
-gh issue comment $ISSUE_NUMBER --body "$ISSUE_COMMENT"
+echo "Adding comment to issue #$ISSUE_NUMBER"
+gh issue comment "$ISSUE_NUMBER" --repo "$FULL_REPO" --body "$ISSUE_COMMENT"
 
 # Clean up temp files
 rm -f "$RESPONSE_FILE" "$FIX_DETAILS_FILE"

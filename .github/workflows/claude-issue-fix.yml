@@ -34,7 +34,7 @@ jobs:
           mode: 'issue-fix'
           issue-number: ${{ github.event.issue.number }}
           repo-owner: ${{ github.repository_owner }}
-          repo-name: ${{ github.repository }}
+          repo-name: ${{ github.event.repository.name }}
           branch-prefix: 'fix'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
