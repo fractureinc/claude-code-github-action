@@ -43,7 +43,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.1.6
+        uses: fractureinc/claude-code-github-action@v0.1.7
         with:
           mode: 'review'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -67,7 +67,7 @@ jobs:
 
 ## Enhanced Context for Claude
 
-With version 0.1.6, Claude now receives complete context for your PRs, including:
+With version 0.1.7, Claude now receives complete context for your PRs, including:
 
 - PR metadata (title, description, branch info)
 - List of all files changed
