@@ -49,14 +49,8 @@ jobs:
           FEEDBACK="${{ github.event.comment.body }}"
           # Remove the "claude:" prefix
           FEEDBACK="${FEEDBACK#claude:}"
-          # Use proper multi-line string handling for GitHub Actions outputs
-          echo "number<<EOF" >> $GITHUB_OUTPUT
-          echo "$ISSUE_NUMBER" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "feedback<<EOF" >> $GITHUB_OUTPUT
-          echo "$FEEDBACK" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "number=${ISSUE_NUMBER}" >> $GITHUB_OUTPUT
+          echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for issue analysis
         uses: fractureinc/claude-code-github-action@v0.5.4
@@ -108,14 +102,8 @@ jobs:
           FEEDBACK="${{ github.event.comment.body }}"
           # Remove the "claude-fix:" prefix
           FEEDBACK="${FEEDBACK#claude-fix:}"
-          # Use proper multi-line string handling for GitHub Actions outputs
-          echo "number<<EOF" >> $GITHUB_OUTPUT
-          echo "$ISSUE_NUMBER" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "feedback<<EOF" >> $GITHUB_OUTPUT
-          echo "$FEEDBACK" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "number=${ISSUE_NUMBER}" >> $GITHUB_OUTPUT
+          echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for issue fix
         uses: fractureinc/claude-code-github-action@v0.5.4
@@ -159,14 +147,8 @@ jobs:
           FEEDBACK="${{ github.event.comment.body }}"
           # Remove the "claude:" prefix
           FEEDBACK="${FEEDBACK#claude:}"
-          # Use proper multi-line string handling for GitHub Actions outputs
-          echo "number<<EOF" >> $GITHUB_OUTPUT
-          echo "$PR_NUMBER" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "feedback<<EOF" >> $GITHUB_OUTPUT
-          echo "$FEEDBACK" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+          echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code
         uses: fractureinc/claude-code-github-action@v0.5.4
@@ -198,14 +180,8 @@ jobs:
           FEEDBACK="${{ github.event.comment.body }}"
           # Remove the "claude-suggest:" prefix
           FEEDBACK="${FEEDBACK#claude-suggest:}"
-          # Use proper multi-line string handling for GitHub Actions outputs
-          echo "number<<EOF" >> $GITHUB_OUTPUT
-          echo "$PR_NUMBER" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "feedback<<EOF" >> $GITHUB_OUTPUT
-          echo "$FEEDBACK" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+          echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions
         uses: fractureinc/claude-code-github-action@v0.5.4
@@ -243,26 +219,12 @@ jobs:
           FILE_PATH="${{ github.event.comment.path }}"
           LINE="${{ github.event.comment.line }}"
           
-          # Use proper multi-line string handling for GitHub Actions outputs
-          echo "number<<EOF" >> $GITHUB_OUTPUT
-          echo "$PR_NUMBER" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+          echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
           
-          echo "feedback<<EOF" >> $GITHUB_OUTPUT
-          echo "$FEEDBACK" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "comment_id<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMENT_ID" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "file_path<<EOF" >> $GITHUB_OUTPUT
-          echo "$FILE_PATH" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "line<<EOF" >> $GITHUB_OUTPUT
-          echo "$LINE" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "comment_id=${COMMENT_ID}" >> $GITHUB_OUTPUT
+          echo "file_path=${FILE_PATH}" >> $GITHUB_OUTPUT
+          echo "line=${LINE}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for code review comment
         uses: fractureinc/claude-code-github-action@v0.5.4
@@ -298,26 +260,12 @@ jobs:
           FILE_PATH="${{ github.event.comment.path }}"
           LINE="${{ github.event.comment.line }}"
           
-          # Use proper multi-line string handling for GitHub Actions outputs
-          echo "number<<EOF" >> $GITHUB_OUTPUT
-          echo "$PR_NUMBER" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+          echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
           
-          echo "feedback<<EOF" >> $GITHUB_OUTPUT
-          echo "$FEEDBACK" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "comment_id<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMENT_ID" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "file_path<<EOF" >> $GITHUB_OUTPUT
-          echo "$FILE_PATH" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "line<<EOF" >> $GITHUB_OUTPUT
-          echo "$LINE" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "comment_id=${COMMENT_ID}" >> $GITHUB_OUTPUT
+          echo "file_path=${FILE_PATH}" >> $GITHUB_OUTPUT
+          echo "line=${LINE}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions for code review
         uses: fractureinc/claude-code-github-action@v0.5.4
