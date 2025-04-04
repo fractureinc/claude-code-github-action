@@ -105,6 +105,8 @@ jobs:
 | `repo-owner` | Owner of the repository (for issue-fix mode) | Yes*** | |
 | `repo-name` | Name of the repository (for issue-fix mode) | Yes*** | |
 | `branch-prefix` | Prefix for the feature branch created for issue fixes | No | `fix` |
+| `issue-label` | Label that triggers issue fix workflows | No | `claude-fix` |
+| `debug-mode` | Enable full debug mode with shell tracing and Claude debug output | No | `false` |
 | `strict-mode` | Whether to strictly follow user requests without adding unrelated improvements | No | `true` |
 | `anthropic-api-key` | Anthropic API key | Yes | |
 | `github-token` | GitHub token | Yes | |
@@ -243,11 +245,13 @@ jobs:
           repo-owner: ${{ github.repository_owner }}
           repo-name: ${{ github.event.repository.name }}
           branch-prefix: 'fix'
+          issue-label: 'claude-fix'
+          debug-mode: 'false'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-This workflow is triggered when an issue is labeled with "claude-fix". Only repo maintainers with write access can add this label, providing security control.
+This workflow is triggered when an issue is labeled with the configured label (default: "claude-fix"). You can customize this label using the `issue-label` parameter. Only repo maintainers with write access can add this label, providing security control.
 
 ## License
 

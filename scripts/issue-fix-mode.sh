@@ -2,9 +2,6 @@
 # Enable strict error checking
 set -e
 
-# Enable debug mode for shell script
-set -x
-
 # Get input parameters
 ISSUE_NUMBER=$1
 REPO_OWNER=$2
@@ -12,6 +9,17 @@ REPO_NAME=$3
 BRANCH_PREFIX=$4
 ANTHROPIC_API_KEY=$5
 GITHUB_TOKEN=$6
+ISSUE_LABEL=${7:-"claude-fix"}
+DEBUG_MODE=${8:-"false"}
+
+# Enable debug mode if requested
+if [[ "$DEBUG_MODE" == "true" ]]; then
+  set -x
+  CLAUDE_DEBUG_FLAG="-d"
+  echo "Debug mode enabled"
+else
+  CLAUDE_DEBUG_FLAG=""
+fi
 
 # Validate required inputs
 if [ -z "$ISSUE_NUMBER" ]; then
@@ -147,7 +155,7 @@ echo "Prompt saved to $PROMPT_FILE for debugging"
 # Run Claude with specific allowed tools
 CLAUDE_OUTPUT_FILE="$OUTPUT_DIR/claude_output_$ISSUE_NUMBER.txt"
 echo "Running Claude to fix the issue..."
-if ! claude -p "$CLAUDE_PROMPT" --allowedTools "Bash(git diff:*)" "Bash(git log:*)" Edit > "$CLAUDE_OUTPUT_FILE" 2>"$OUTPUT_DIR/claude_error_$ISSUE_NUMBER.log"; then
+if ! claude -p $CLAUDE_DEBUG_FLAG "$CLAUDE_PROMPT" --allowedTools "Bash(git diff:*)" "Bash(git log:*)" Edit > "$CLAUDE_OUTPUT_FILE" 2>"$OUTPUT_DIR/claude_error_$ISSUE_NUMBER.log"; then
   echo "Error: Claude execution failed"
   cat "$OUTPUT_DIR/claude_error_$ISSUE_NUMBER.log"
   exit 1

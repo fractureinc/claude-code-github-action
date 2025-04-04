@@ -25,6 +25,14 @@ inputs:
     description: 'Prefix for the feature branch created for issue fixes'
     required: false
     default: 'fix'
+  issue-label:
+    description: 'Label that triggers issue fix workflows'
+    required: false
+    default: 'claude-fix'
+  debug-mode:
+    description: 'Enable full debug mode with shell tracing and Claude debug output'
+    required: false
+    default: 'false'
   feedback:
     description: 'The feedback text from the comment'
     required: false
@@ -103,4 +111,4 @@ runs:
       shell: bash
       run: |
         chmod +x ${{ github.action_path }}/scripts/issue-fix-mode.sh
-        ${{ github.action_path }}/scripts/issue-fix-mode.sh "${{ inputs.issue-number }}" "${{ inputs.repo-owner }}" "${{ inputs.repo-name }}" "${{ inputs.branch-prefix }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}"
+        ${{ github.action_path }}/scripts/issue-fix-mode.sh "${{ inputs.issue-number }}" "${{ inputs.repo-owner }}" "${{ inputs.repo-name }}" "${{ inputs.branch-prefix }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}" "${{ inputs.issue-label }}" "${{ inputs.debug-mode }}"

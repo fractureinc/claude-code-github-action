@@ -7,7 +7,7 @@ on:
 jobs:
   process-issue-fix:
     runs-on: ubuntu-latest
-    # Only run on issues with the 'claude-fix' label
+    # Run on issues with the configured label (default: 'claude-fix')
     if: ${{ github.event.label.name == 'claude-fix' }}
     permissions:
       contents: write
@@ -38,6 +38,8 @@ jobs:
           # Use github.event.repository.name for just the repo name (without owner)
           repo-name: ${{ github.event.repository.name }}
           branch-prefix: 'fix'
+          issue-label: 'claude-fix'
+          debug-mode: 'false'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
       
