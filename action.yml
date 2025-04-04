@@ -6,7 +6,7 @@ branding:
 
 inputs:
   mode:
-    description: 'The mode to run the action in (review, suggest, suggest-review, issue-fix, direct)'
+    description: 'The mode to run the action in (review, suggest, suggest-review, issue-fix, issue-analyze, direct)'
     required: true
     default: 'review'
   pr-number:
@@ -111,4 +111,11 @@ runs:
       shell: bash
       run: |
         chmod +x ${{ github.action_path }}/scripts/issue-fix-mode.sh
-        ${{ github.action_path }}/scripts/issue-fix-mode.sh "${{ inputs.issue-number }}" "${{ inputs.repo-owner }}" "${{ inputs.repo-name }}" "${{ inputs.branch-prefix }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}" "${{ inputs.issue-label }}" "${{ inputs.debug-mode }}"
+        ${{ github.action_path }}/scripts/issue-fix-mode.sh "${{ inputs.issue-number }}" "${{ inputs.repo-owner }}" "${{ inputs.repo-name }}" "${{ inputs.branch-prefix }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}" "${{ inputs.issue-label }}" "${{ inputs.debug-mode }}" "${{ inputs.feedback }}"
+        
+    - name: Process Issue Analysis
+      if: inputs.mode == 'issue-analyze'
+      shell: bash
+      run: |
+        chmod +x ${{ github.action_path }}/scripts/issue-analyze-mode.sh
+        ${{ github.action_path }}/scripts/issue-analyze-mode.sh "${{ inputs.issue-number }}" "${{ inputs.repo-owner }}" "${{ inputs.repo-name }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}" "${{ inputs.debug-mode }}" "${{ inputs.feedback }}"

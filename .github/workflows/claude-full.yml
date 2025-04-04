@@ -1,0 +1,282 @@
+name: Claude Code Full Integration
+
+on:
+  workflow_call:
+    inputs:
+      issue-label:
+        type: string
+        description: 'Label that triggers issue fix workflows'
+        default: 'claude-fix'
+        required: false
+      debug-mode:
+        type: boolean
+        description: 'Enable full debug output'
+        default: false
+        required: false
+      branch-prefix:
+        type: string
+        description: 'Prefix for branches created for issue fixes'
+        default: 'fix'
+        required: false
+      strict-mode:
+        type: boolean
+        description: 'Strictly follow user requests without adding unrelated improvements'
+        default: true
+        required: false
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+      GITHUB_TOKEN:
+        required: true
+
+jobs:
+  # Handle issue analysis comments
+  process-issue-analysis:
+    runs-on: ubuntu-latest
+    # Only run on issue comments (not PRs) that start with 'claude:'
+    if: ${{ github.event_name == 'issue_comment' && !github.event.issue.pull_request && startsWith(github.event.comment.body, 'claude:') }}
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Get issue details
+        id: issue
+        run: |
+          ISSUE_NUMBER="${{ github.event.issue.number }}"
+          FEEDBACK="${{ github.event.comment.body }}"
+          # Remove the "claude:" prefix
+          FEEDBACK="${FEEDBACK#claude:}"
+          echo "number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+          echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
+      
+      - name: Process with Claude Code for issue analysis
+        uses: fractureinc/claude-code-github-action@v0.4.0
+        with:
+          mode: 'issue-analyze'
+          issue-number: ${{ steps.issue.outputs.number }}
+          repo-owner: ${{ github.repository_owner }}
+          repo-name: ${{ github.event.repository.name }}
+          feedback: ${{ steps.issue.outputs.feedback }}
+          debug-mode: ${{ inputs.debug-mode || 'false' }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload claude output artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-output-issue-analyze-${{ github.event.issue.number }}
+          path: claude-output/
+          
+  # Handle issue fix commands
+  process-issue-fix-command:
+    runs-on: ubuntu-latest
+    # Only run on issue comments (not PRs) that start with 'claude-fix:'
+    if: ${{ github.event_name == 'issue_comment' && !github.event.issue.pull_request && startsWith(github.event.comment.body, 'claude-fix:') }}
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup GitHub CLI
+        run: |
+          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Setup git user
+        run: |
+          git config --global user.name "Claude Code Bot"
+          git config --global user.email "claude-bot@example.com"
+          
+      - name: Get issue details
+        id: issue
+        run: |
+          ISSUE_NUMBER="${{ github.event.issue.number }}"
+          FEEDBACK="${{ github.event.comment.body }}"
+          # Remove the "claude-fix:" prefix
+          FEEDBACK="${FEEDBACK#claude-fix:}"
+          echo "number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+          echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
+      
+      - name: Process with Claude Code for issue fix
+        uses: fractureinc/claude-code-github-action@v0.4.0
+        with:
+          mode: 'issue-fix'
+          issue-number: ${{ steps.issue.outputs.number }}
+          repo-owner: ${{ github.repository_owner }}
+          repo-name: ${{ github.event.repository.name }}
+          branch-prefix: ${{ inputs.branch-prefix || 'fix' }}
+          issue-label: ${{ inputs.issue-label || 'claude-fix' }}
+          debug-mode: ${{ inputs.debug-mode || 'false' }}
+          feedback: ${{ steps.issue.outputs.feedback }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload claude output artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-output-issue-fix-${{ github.event.issue.number }}
+          path: claude-output/
+          
+  # Handle PR comments
+  process-pr-review:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'issue_comment' && github.event.issue.pull_request && startsWith(github.event.comment.body, 'claude:') }}
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Get PR details
+        id: pr
+        run: |
+          PR_NUMBER="${{ github.event.issue.number }}"
+          FEEDBACK="${{ github.event.comment.body }}"
+          # Remove the "claude:" prefix
+          FEEDBACK="${FEEDBACK#claude:}"
+          echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
+      
+      - name: Process with Claude Code
+        uses: fractureinc/claude-code-github-action@v0.4.0
+        with:
+          mode: 'review'
+          pr-number: ${{ steps.pr.outputs.number }}
+          feedback: ${{ steps.pr.outputs.feedback }}
+          debug-mode: ${{ inputs.debug-mode || 'false' }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  process-pr-suggestions:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'issue_comment' && github.event.issue.pull_request && startsWith(github.event.comment.body, 'claude-suggest:') }}
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Get PR details
+        id: pr
+        run: |
+          PR_NUMBER="${{ github.event.issue.number }}"
+          FEEDBACK="${{ github.event.comment.body }}"
+          # Remove the "claude-suggest:" prefix
+          FEEDBACK="${FEEDBACK#claude-suggest:}"
+          echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
+      
+      - name: Process with Claude Code Suggestions
+        uses: fractureinc/claude-code-github-action@v0.4.0
+        with:
+          mode: 'suggest'
+          pr-number: ${{ steps.pr.outputs.number }}
+          feedback: ${{ steps.pr.outputs.feedback }}
+          strict-mode: ${{ inputs.strict-mode || 'true' }}
+          debug-mode: ${{ inputs.debug-mode || 'false' }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          
+  # Handle code review comments  
+  process-review-comment:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request_review_comment' && startsWith(github.event.comment.body, 'claude:') }}
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Get PR and comment details
+        id: details
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          FEEDBACK="${{ github.event.comment.body }}"
+          # Remove the "claude:" prefix
+          FEEDBACK="${FEEDBACK#claude:}"
+          COMMENT_ID="${{ github.event.comment.id }}"
+          FILE_PATH="${{ github.event.comment.path }}"
+          LINE="${{ github.event.comment.line }}"
+          
+          echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
+          echo "comment_id=$COMMENT_ID" >> $GITHUB_OUTPUT
+          echo "file_path=$FILE_PATH" >> $GITHUB_OUTPUT
+          echo "line=$LINE" >> $GITHUB_OUTPUT
+      
+      - name: Process with Claude Code for code review comment
+        uses: fractureinc/claude-code-github-action@v0.4.0
+        with:
+          mode: 'review'
+          pr-number: ${{ steps.details.outputs.number }}
+          feedback: ${{ steps.details.outputs.feedback }}
+          debug-mode: ${{ inputs.debug-mode || 'false' }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          
+  process-suggest-review-comment:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request_review_comment' && startsWith(github.event.comment.body, 'claude-suggest:') }}
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Get PR and comment details
+        id: details
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          FEEDBACK="${{ github.event.comment.body }}"
+          # Remove the "claude-suggest:" prefix
+          FEEDBACK="${FEEDBACK#claude-suggest:}"
+          COMMENT_ID="${{ github.event.comment.id }}"
+          FILE_PATH="${{ github.event.comment.path }}"
+          LINE="${{ github.event.comment.line }}"
+          
+          echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
+          echo "comment_id=$COMMENT_ID" >> $GITHUB_OUTPUT
+          echo "file_path=$FILE_PATH" >> $GITHUB_OUTPUT
+          echo "line=$LINE" >> $GITHUB_OUTPUT
+      
+      - name: Process with Claude Code Suggestions for code review
+        uses: fractureinc/claude-code-github-action@v0.4.0
+        with:
+          mode: 'suggest-review'
+          pr-number: ${{ steps.details.outputs.number }}
+          feedback: ${{ steps.details.outputs.feedback }}
+          file-path: ${{ steps.details.outputs.file_path }}
+          line-number: ${{ steps.details.outputs.line }}
+          comment-id: ${{ steps.details.outputs.comment_id }}
+          strict-mode: ${{ inputs.strict-mode || 'true' }}
+          debug-mode: ${{ inputs.debug-mode || 'false' }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

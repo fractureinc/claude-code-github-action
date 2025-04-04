@@ -1,0 +1,21 @@
+name: Claude Code Integration
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+# This demonstrates how to use the reusable workflow for comment-based interactions
+jobs:
+  claude-integration:
+    uses: fractureinc/claude-code-github-action/.github/workflows/claude-full.yml@v0.4.0
+    with:
+      # Optional customizations:
+      issue-label: 'claude-fix'  # The label used to trigger issue fixes
+      branch-prefix: 'fix'       # Prefix for branches created for fixes
+      debug-mode: false          # Set to true for verbose logging
+      strict-mode: true          # Set to false to allow Claude to make additional improvements
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

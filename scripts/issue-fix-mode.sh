@@ -11,6 +11,7 @@ ANTHROPIC_API_KEY=$5
 GITHUB_TOKEN=$6
 ISSUE_LABEL=${7:-"claude-fix"}
 DEBUG_MODE=${8:-"false"}
+FEEDBACK=$9
 
 # Enable debug mode if requested
 if [[ "$DEBUG_MODE" == "true" ]]; then
@@ -125,6 +126,21 @@ Issue #$ISSUE_NUMBER: $ISSUE_TITLE
 
 Issue Description:
 $ISSUE_BODY
+EOF
+)
+
+# Add additional instructions if provided
+if [ -n "$FEEDBACK" ]; then
+  CLAUDE_PROMPT+=$(cat <<EOF
+
+Additional Instructions from User Comment:
+$FEEDBACK
+EOF
+)
+fi
+
+# Complete the prompt
+CLAUDE_PROMPT+=$(cat <<EOF
 
 Your task is to:
 1. Analyze the issue carefully to understand the problem

@@ -1,0 +1,69 @@
+name: Claude Code Label-Based Fix
+
+on:
+  workflow_call:
+    inputs:
+      issue-label:
+        type: string
+        description: 'Label that triggers issue fix workflows'
+        default: 'claude-fix'
+        required: false
+      debug-mode:
+        type: boolean
+        description: 'Enable full debug output'
+        default: false
+        required: false
+      branch-prefix:
+        type: string
+        description: 'Prefix for branches created for issue fixes'
+        default: 'fix'
+        required: false
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+      GITHUB_TOKEN:
+        required: true
+
+jobs:
+  process-issue-fix:
+    runs-on: ubuntu-latest
+    # Run on issues with the configured label (default: 'claude-fix')
+    if: ${{ github.event.label.name == inputs.issue-label || github.event.label.name == 'claude-fix' }}
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup GitHub CLI
+        run: |
+          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Setup git user
+        run: |
+          git config --global user.name "Claude Code Bot"
+          git config --global user.email "claude-bot@example.com"
+          
+      - name: Process issue with Claude Code
+        uses: fractureinc/claude-code-github-action@v0.4.0
+        with:
+          mode: 'issue-fix'
+          issue-number: ${{ github.event.issue.number }}
+          repo-owner: ${{ github.repository_owner }}
+          repo-name: ${{ github.event.repository.name }}
+          branch-prefix: ${{ inputs.branch-prefix || 'fix' }}
+          issue-label: ${{ inputs.issue-label || 'claude-fix' }}
+          debug-mode: ${{ inputs.debug-mode || 'false' }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload claude output artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-output-issue-${{ github.event.issue.number }}
+          path: claude-output/

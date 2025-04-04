@@ -14,29 +14,11 @@ This GitHub Action integrates Claude Code in your GitHub workflows, enabling AI-
 
 ## Quick Start
 
-### 1. Pull Request Interactions
+### 1. Add Claude to Your Repository
 
-Comment on a pull request:
-- `claude: Explain the changes in this PR` → Get analysis and feedback
-- `claude-suggest: Improve error handling` → Get code suggestions
+Create two simple workflow files to integrate Claude with your repository:
 
-Or use in-line code review:
-- Comment on a specific line with `claude: What's wrong here?` → Get targeted analysis
-- Comment on a specific line with `claude-suggest: Fix this` → Get targeted fix suggestions
-
-### 2. Issue Interactions
-
-Comment on an issue:
-- `claude: What's causing this bug?` → Get analysis without changing code
-- `claude-fix: Fix this by adding error handling` → Get a fix PR created automatically
-
-Or add a label:
-- Add the `claude-fix` label to an issue → Get a fix PR created automatically
-
-## How to Use
-
-Create a workflow file (`.github/workflows/claude-code.yml`) to enable Claude Code integration:
-
+**File: `.github/workflows/claude-code.yml`**
 ```yaml
 name: Claude Code Integration
 
@@ -47,9 +29,53 @@ on:
     types: [created]
 
 jobs:
-  # Standard Claude workflow configuration
-  # (See full example below)
+  claude-integration:
+    uses: fractureinc/claude-code-github-action/.github/workflows/claude-full.yml@v0.5.0
+    with:
+      issue-label: 'claude-fix'  # Optional: customize the trigger label
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+**File: `.github/workflows/claude-issue-fix.yml`**
+```yaml
+name: Claude Code Issue Fix
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  claude-label-fix:
+    uses: fractureinc/claude-code-github-action/.github/workflows/claude-label-fix.yml@v0.5.0
+    with:
+      issue-label: 'claude-fix'  # Must match your chosen label
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### 2. Use Claude in PRs and Issues
+
+Comment on a pull request:
+- `claude: Explain the changes in this PR` → Get analysis and feedback
+- `claude-suggest: Improve error handling` → Get code suggestions
+
+Or use in-line code review:
+- Comment on a specific line with `claude: What's wrong here?` → Get targeted analysis
+- Comment on a specific line with `claude-suggest: Fix this` → Get targeted fix suggestions
+
+Comment on an issue:
+- `claude: What's causing this bug?` → Get analysis without changing code
+- `claude-fix: Fix this by adding error handling` → Get a fix PR created automatically
+
+Or add a label:
+- Add the `claude-fix` label to an issue → Get a fix PR created automatically
+
+## Setup Details
+
+The Quick Start section above shows the minimal configuration needed. Our action uses reusable workflows to make setup easy - you just need to create two small workflow files that reference our pre-configured workflows.
 
 ## Understanding Claude Code Modes
 
@@ -64,300 +90,44 @@ Claude Code can operate in several different modes, each with specific behaviors
 | `issue-fix` | `claude-fix:` comment or label | Issues | Creates a PR with code changes to fix the issue |
 | `direct` | Direct action invocation | N/A | Runs Claude on arbitrary input and saves response to a file |
 
-## Detailed Examples
+## Advanced Configuration
 
-### 1. PR Comments Workflow
+The reusable workflows support several configuration options:
 
-```yaml
-name: Claude Code Integration
-
-on:
-  issue_comment:
-    types: [created]
-  pull_request_review_comment:
-    types: [created]
-
-jobs:
-  # Handle "claude:" comments on issues for analysis
-  process-issue-analysis:
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'issue_comment' && !github.event.issue.pull_request && startsWith(github.event.comment.body, 'claude:') }}
-    permissions:
-      contents: read
-      issues: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Get issue details
-        id: issue
-        run: |
-          ISSUE_NUMBER="${{ github.event.issue.number }}"
-          FEEDBACK="${{ github.event.comment.body }}"
-          # Remove the "claude:" prefix
-          FEEDBACK="${FEEDBACK#claude:}"
-          echo "number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
-          echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
-      
-      - name: Process with Claude Code for issue analysis
-        uses: fractureinc/claude-code-github-action@v0.4.0
-        with:
-          mode: 'issue-analyze'
-          issue-number: ${{ steps.issue.outputs.number }}
-          repo-owner: ${{ github.repository_owner }}
-          repo-name: ${{ github.event.repository.name }}
-          feedback: ${{ steps.issue.outputs.feedback }}
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          
-  # Handle "claude-fix:" comments on issues to create fix PRs
-  process-issue-fix-command:
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'issue_comment' && !github.event.issue.pull_request && startsWith(github.event.comment.body, 'claude-fix:') }}
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Setup GitHub CLI
-        run: |
-          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Setup git user
-        run: |
-          git config --global user.name "Claude Code Bot"
-          git config --global user.email "claude-bot@example.com"
-          
-      - name: Get issue details
-        id: issue
-        run: |
-          ISSUE_NUMBER="${{ github.event.issue.number }}"
-          FEEDBACK="${{ github.event.comment.body }}"
-          # Remove the "claude-fix:" prefix
-          FEEDBACK="${FEEDBACK#claude-fix:}"
-          echo "number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
-          echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
-      
-      - name: Process with Claude Code for issue fix
-        uses: fractureinc/claude-code-github-action@v0.4.0
-        with:
-          mode: 'issue-fix'
-          issue-number: ${{ steps.issue.outputs.number }}
-          repo-owner: ${{ github.repository_owner }}
-          repo-name: ${{ github.event.repository.name }}
-          branch-prefix: 'fix'
-          feedback: ${{ steps.issue.outputs.feedback }}
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          
-  # Handle "claude:" comments on PRs
-  process-pr-review:
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'issue_comment' && github.event.issue.pull_request && startsWith(github.event.comment.body, 'claude:') }}
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Get PR details
-        id: pr
-        run: |
-          PR_NUMBER="${{ github.event.issue.number }}"
-          FEEDBACK="${{ github.event.comment.body }}"
-          # Remove the "claude:" prefix
-          FEEDBACK="${FEEDBACK#claude:}"
-          echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
-      
-      - name: Process with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.4.0
-        with:
-          mode: 'review'
-          pr-number: ${{ steps.pr.outputs.number }}
-          feedback: ${{ steps.pr.outputs.feedback }}
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-  # Handle "claude-suggest:" comments on PRs
-  process-pr-suggestions:
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'issue_comment' && github.event.issue.pull_request && startsWith(github.event.comment.body, 'claude-suggest:') }}
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Get PR details
-        id: pr
-        run: |
-          PR_NUMBER="${{ github.event.issue.number }}"
-          FEEDBACK="${{ github.event.comment.body }}"
-          # Remove the "claude-suggest:" prefix
-          FEEDBACK="${FEEDBACK#claude-suggest:}"
-          echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
-      
-      - name: Process with Claude Code Suggestions
-        uses: fractureinc/claude-code-github-action@v0.4.0
-        with:
-          mode: 'suggest'
-          pr-number: ${{ steps.pr.outputs.number }}
-          feedback: ${{ steps.pr.outputs.feedback }}
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          
-  # Handle "claude:" on code review comments  
-  process-review-comment:
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request_review_comment' && startsWith(github.event.comment.body, 'claude:') }}
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Get PR and comment details
-        id: details
-        run: |
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          FEEDBACK="${{ github.event.comment.body }}"
-          # Remove the "claude:" prefix
-          FEEDBACK="${FEEDBACK#claude:}"
-          COMMENT_ID="${{ github.event.comment.id }}"
-          FILE_PATH="${{ github.event.comment.path }}"
-          LINE="${{ github.event.comment.line }}"
-          
-          echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
-          echo "comment_id=$COMMENT_ID" >> $GITHUB_OUTPUT
-          echo "file_path=$FILE_PATH" >> $GITHUB_OUTPUT
-          echo "line=$LINE" >> $GITHUB_OUTPUT
-      
-      - name: Process with Claude Code for code review comment
-        uses: fractureinc/claude-code-github-action@v0.4.0
-        with:
-          mode: 'review'
-          pr-number: ${{ steps.details.outputs.number }}
-          feedback: ${{ steps.details.outputs.feedback }}
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          
-  # Handle "claude-suggest:" on code review comments
-  process-suggest-review-comment:
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request_review_comment' && startsWith(github.event.comment.body, 'claude-suggest:') }}
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Get PR and comment details
-        id: details
-        run: |
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          FEEDBACK="${{ github.event.comment.body }}"
-          # Remove the "claude-suggest:" prefix
-          FEEDBACK="${FEEDBACK#claude-suggest:}"
-          COMMENT_ID="${{ github.event.comment.id }}"
-          FILE_PATH="${{ github.event.comment.path }}"
-          LINE="${{ github.event.comment.line }}"
-          
-          echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
-          echo "comment_id=$COMMENT_ID" >> $GITHUB_OUTPUT
-          echo "file_path=$FILE_PATH" >> $GITHUB_OUTPUT
-          echo "line=$LINE" >> $GITHUB_OUTPUT
-      
-      - name: Process with Claude Code Suggestions for code review
-        uses: fractureinc/claude-code-github-action@v0.4.0
-        with:
-          mode: 'suggest-review'
-          pr-number: ${{ steps.details.outputs.number }}
-          feedback: ${{ steps.details.outputs.feedback }}
-          file-path: ${{ steps.details.outputs.file_path }}
-          line-number: ${{ steps.details.outputs.line }}
-          comment-id: ${{ steps.details.outputs.comment_id }}
-          strict-mode: 'true'
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-```
-
-### 2. Issue Fix Workflow (Label-Based)
-
-This workflow runs when issues are labeled with "claude-fix":
+### Comment-Based Integration (`claude-full.yml`)
 
 ```yaml
-name: Claude Code Issue Fix
-
-on:
-  issues:
-    types: [labeled]
-
 jobs:
-  process-issue-fix:
-    runs-on: ubuntu-latest
-    # Run on issues with the configured label (default: 'claude-fix')
-    if: ${{ github.event.label.name == 'claude-fix' }}
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Setup GitHub CLI
-        run: |
-          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Setup git user
-        run: |
-          git config --global user.name "Claude Code Bot"
-          git config --global user.email "claude-bot@example.com"
-          
-      - name: Process issue with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.4.0
-        with:
-          mode: 'issue-fix'
-          issue-number: ${{ github.event.issue.number }}
-          repo-owner: ${{ github.repository_owner }}
-          repo-name: ${{ github.event.repository.name }}
-          branch-prefix: 'fix'
-          issue-label: 'claude-fix'
-          debug-mode: 'false'
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+  claude-integration:
+    uses: fractureinc/claude-code-github-action/.github/workflows/claude-full.yml@v0.5.0
+    with:
+      # All parameters are optional with sensible defaults
+      issue-label: 'claude-fix'  # Label that triggers issue fixes
+      branch-prefix: 'fix'       # Prefix for branches created by fixes
+      debug-mode: false          # Enable verbose logging
+      strict-mode: true          # When false, allows Claude to add improvements
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-This workflow is triggered when an issue is labeled with the configured label (default: "claude-fix"). You can customize this label using the `issue-label` parameter. Only repo maintainers with write access can add this label, providing security control.
+### Label-Based Integration (`claude-label-fix.yml`)
+
+```yaml
+jobs:
+  claude-label-fix:
+    uses: fractureinc/claude-code-github-action/.github/workflows/claude-label-fix.yml@v0.5.0
+    with:
+      # All parameters are optional with sensible defaults
+      issue-label: 'claude-fix'  # Must match the label you're using
+      branch-prefix: 'fix'       # Prefix for branches created by fixes
+      debug-mode: false          # Enable verbose logging
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Only repo maintainers with write access can add labels, providing security control over which issues Claude will fix.
 
 ## Query Prefixes and Their Behaviors
 
@@ -371,34 +141,22 @@ This workflow is triggered when an issue is labeled with the configured label (d
 | `claude-fix: <query>` | Issue comments | Creates a PR with code changes to fix the issue |
 | Adding the `claude-fix` label | Issues | Creates a PR with code changes to fix the issue |
 
-## Configuration
+## Configuration Options
 
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `mode` | Operation mode (review, suggest, suggest-review, issue-fix, issue-analyze, direct) | Yes | `review` |
-| `pr-number` | Pull request number | Yes* | |
-| `feedback` | User query text | Yes* | |
-| `file-path` | Path to the file being reviewed (for suggest-review mode) | No** | |
-| `line-number` | Line number in the file (for suggest-review mode) | No** | |
-| `comment-id` | GitHub comment ID to reply to (for suggest-review mode) | No** | |
-| `issue-number` | Issue number (for issue-fix mode) | Yes*** | |
-| `repo-owner` | Owner of the repository (for issue-fix mode) | Yes*** | |
-| `repo-name` | Name of the repository (for issue-fix mode) | Yes*** | |
-| `branch-prefix` | Prefix for the feature branch created for issue fixes | No | `fix` |
-| `issue-label` | Label that triggers issue fix workflows | No | `claude-fix` |
-| `debug-mode` | Enable full debug mode with shell tracing and Claude debug output | No | `false` |
-| `strict-mode` | Whether to strictly follow user requests without adding unrelated improvements | No | `true` |
-| `anthropic-api-key` | Anthropic API key | Yes | |
-| `github-token` | GitHub token | Yes | |
-| `output-file` | Output file path (for direct mode) | No | `claude-code-output` |
+When using our reusable workflows, you only need to configure a few key options:
 
-\* Required when mode is 'review' or 'suggest'  
-\** Required when mode is 'suggest-review'  
-\*** Required when mode is 'issue-fix' or 'issue-analyze'
+| Parameter | Description | Default | Used In |
+|-----------|-------------|---------|---------|
+| `issue-label` | Label that triggers issue fixes | `claude-fix` | Both workflows |
+| `branch-prefix` | Prefix for branches created by fixes | `fix` | Both workflows |
+| `debug-mode` | Enable verbose logging | `false` | Both workflows |
+| `strict-mode` | Controls whether Claude adds improvements beyond what's requested | `true` | Comment workflow only |
+
+All parameters are optional and have sensible defaults.
 
 ## Enhanced Context for Claude
 
-With version 0.4.0, Claude now receives complete context for your PRs and issues, including:
+With version 0.5.0, Claude now receives complete context for your PRs and issues, including:
 
 - PR metadata (title, description, branch info)
 - Issue details (title, description, labels)
