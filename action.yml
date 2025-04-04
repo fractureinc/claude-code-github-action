@@ -24,6 +24,10 @@ inputs:
   comment-id:
     description: 'GitHub comment ID to reply to (for suggest-review mode)'
     required: false
+  strict-mode:
+    description: 'Whether to strictly follow user requests without adding unrelated improvements'
+    required: false
+    default: 'true'
   anthropic-api-key:
     description: 'Anthropic API key for Claude access'
     required: true
@@ -79,4 +83,4 @@ runs:
       shell: bash
       run: |
         chmod +x ${{ github.action_path }}/scripts/suggest-review-mode.sh
-        ${{ github.action_path }}/scripts/suggest-review-mode.sh "${{ inputs.pr-number }}" "${{ inputs.feedback }}" "${{ inputs.file-path }}" "${{ inputs.line-number }}" "${{ inputs.comment-id }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}"
+        ${{ github.action_path }}/scripts/suggest-review-mode.sh "${{ inputs.pr-number }}" "${{ inputs.feedback }}" "${{ inputs.file-path }}" "${{ inputs.line-number }}" "${{ inputs.comment-id }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}" "${{ inputs.strict-mode }}"

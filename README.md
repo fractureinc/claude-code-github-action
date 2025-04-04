@@ -49,7 +49,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.2.1
+        uses: fractureinc/claude-code-github-action@v0.2.2
         with:
           mode: 'review'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -81,7 +81,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions
-        uses: fractureinc/claude-code-github-action@v0.2.1
+        uses: fractureinc/claude-code-github-action@v0.2.2
         with:
           mode: 'suggest'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -94,18 +94,23 @@ jobs:
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| `mode` | Operation mode (review, suggest, direct) | Yes | `review` |
+| `mode` | Operation mode (review, suggest, suggest-review, direct) | Yes | `review` |
 | `pr-number` | Pull request number | Yes* | |
 | `feedback` | User query text | Yes | |
+| `file-path` | Path to the file being reviewed (for suggest-review mode) | No** | |
+| `line-number` | Line number in the file (for suggest-review mode) | No** | |
+| `comment-id` | GitHub comment ID to reply to (for suggest-review mode) | No** | |
+| `strict-mode` | Whether to strictly follow user requests without adding unrelated improvements | No | `true` |
 | `anthropic-api-key` | Anthropic API key | Yes | |
 | `github-token` | GitHub token | Yes | |
 | `output-file` | Output file path (for direct mode) | No | `claude-code-output` |
 
-\* Required when mode is 'review' or 'suggest'
+\* Required when mode is 'review' or 'suggest'  
+\** Required when mode is 'suggest-review'
 
 ## Enhanced Context for Claude
 
-With version 0.2.1, Claude now receives complete context for your PRs, including:
+With version 0.2.2, Claude now receives complete context for your PRs, including:
 
 - PR metadata (title, description, branch info)
 - List of all files changed
@@ -126,6 +131,8 @@ Creates suggested changes in a PR comment that outline potential code improvemen
 ### Suggest Review Mode (`mode: 'suggest-review'`)
 
 Creates true GitHub-compatible suggestions that can be applied with one click directly from the code review interface. These are attached to specific lines of code.
+
+By default, this mode uses "strict mode" which ensures Claude only makes changes specifically related to what was requested, without adding unrelated improvements. You can disable strict mode by setting `strict-mode: 'false'` to allow Claude to suggest additional improvements.
 
 ### Direct Mode (`mode: 'direct'`)
 

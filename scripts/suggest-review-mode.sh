@@ -9,13 +9,20 @@ LINE_NUMBER=$4
 COMMENT_ID=$5
 ANTHROPIC_API_KEY=$6
 GITHUB_TOKEN=$7
+STRICT_MODE=$8
+
+# Default to strict mode if not provided
+if [ -z "$STRICT_MODE" ]; then
+    STRICT_MODE="true"
+fi
 
 # Set up authentication
 echo "$GITHUB_TOKEN" | gh auth login --with-token
 export ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY"
 
-# Create a temp file for Claude's response
+# Create a temp files for Claude's responses
 RESPONSE_FILE=$(mktemp)
+ADDITIONAL_SUGGESTIONS_FILE=$(mktemp)
 
 # Get PR details using GitHub CLI
 echo "Fetching PR details for PR #$PR_NUMBER"
@@ -50,6 +57,21 @@ REPO_DESC=$(echo "$REPO_INFO" | jq -r '.description')
 REPO_DEFAULT_BRANCH=$(echo "$REPO_INFO" | jq -r '.defaultBranchRef.name')
 REPO_LANGUAGES=$(echo "$REPO_INFO" | jq -r '.languages[].name' | tr '\n' ', ' | sed 's/,$//')
 
+# Add strict mode instructions if enabled
+STRICT_INSTRUCTIONS=""
+if [ "$STRICT_MODE" = "true" ]; then
+    STRICT_INSTRUCTIONS=$(cat <<EOF
+
+IMPORTANT - STRICT MODE IS ENABLED:
+1. You MUST address ONLY what the user explicitly asked for in their query
+2. Do NOT make any unrelated improvements to the code, even if they would be beneficial
+3. If the user asks to "add X", focus exclusively on adding X, not refactoring existing code
+4. If you identify other issues in the code, DO NOT address them in your suggestion
+5. Stay hyper-focused on the specific request, even if other improvements seem obvious
+EOF
+)
+fi
+
 # Build the prompt for Claude to generate a suggested change
 PROMPT=$(cat <<EOF
 This is a GitHub code review. Create a suggestion for the specific code at line $LINE_NUMBER in file '$FILE_PATH'.
@@ -60,6 +82,7 @@ You MUST format your response as a SINGLE suggestion using the exact GitHub sugg
 \`\`\`suggestion
 [Your improved code here]
 \`\`\`
+$STRICT_INSTRUCTIONS
 
 Guidelines:
 1. Focus ONLY on line $LINE_NUMBER and immediately surrounding lines
@@ -100,7 +123,49 @@ echo "Posting Claude's suggested change as a reply to the comment"
 gh api --method POST "/repos/:owner/:repo/pulls/$PR_NUMBER/comments/$COMMENT_ID/replies" \
    -F body="@$RESPONSE_FILE"
 
-# Clean up
-rm -f "$RESPONSE_FILE"
+# If in non-strict mode, check for additional improvement suggestions
+if [ "$STRICT_MODE" = "false" ]; then
+    ADDITIONAL_PROMPT=$(cat <<EOF
+You've already provided a suggestion that directly addresses the user's query for line $LINE_NUMBER in file '$FILE_PATH'.
 
-echo "Claude's in-line suggestion posted successfully!"
+Now, identify any additional code improvements that would be beneficial beyond what was specifically requested. 
+These should be improvements that weren't part of the original request but would enhance code quality, 
+readability, performance, or maintainability.
+
+Format your response as:
+1. A brief explanation of why these additional improvements would be valuable
+2. Clearly labeled additional suggestions (not using the GitHub suggestion format)
+
+File being reviewed: $FILE_PATH
+Line number context: $LINE_NUMBER
+
+Context (code around line $LINE_NUMBER):
+\`\`\`
+$CONTEXT_CONTENT
+\`\`\`
+
+Complete file content:
+\`\`\`
+$FILE_CONTENT
+\`\`\`
+
+If you don't have any additional suggestions beyond what was directly requested, respond with "No additional improvements suggested."
+EOF
+)
+
+    echo "Checking for additional improvement suggestions..."
+    echo "$ADDITIONAL_PROMPT" | claude -p - > "$ADDITIONAL_SUGGESTIONS_FILE"
+    
+    # Only post additional suggestions if they exist
+    if ! grep -q "No additional improvements suggested" "$ADDITIONAL_SUGGESTIONS_FILE"; then
+        echo "Posting additional improvement suggestions..."
+        ADDITIONAL_CONTENT="## Additional Suggestions\n\nWhile addressing your specific request, I noticed some other potential improvements:\n\n$(cat "$ADDITIONAL_SUGGESTIONS_FILE")\n\n*These are optional suggestions beyond what you specifically requested.*"
+        gh api --method POST "/repos/:owner/:repo/pulls/$PR_NUMBER/comments/$COMMENT_ID/replies" \
+           -F body="$ADDITIONAL_CONTENT"
+    fi
+fi
+
+# Clean up
+rm -f "$RESPONSE_FILE" "$ADDITIONAL_SUGGESTIONS_FILE"
+
+echo "Claude's suggestions posted successfully!"

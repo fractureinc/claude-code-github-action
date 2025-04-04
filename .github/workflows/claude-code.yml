@@ -32,7 +32,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.2.0
+        uses: fractureinc/claude-code-github-action@v0.2.2
         with:
           mode: 'review'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -64,7 +64,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions
-        uses: fractureinc/claude-code-github-action@v0.2.0
+        uses: fractureinc/claude-code-github-action@v0.2.2
         with:
           mode: 'suggest'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -104,7 +104,7 @@ jobs:
           echo "line=$LINE" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for code review comment
-        uses: fractureinc/claude-code-github-action@v0.2.0
+        uses: fractureinc/claude-code-github-action@v0.2.2
         with:
           mode: 'review'
           pr-number: ${{ steps.details.outputs.number }}
@@ -143,7 +143,7 @@ jobs:
           echo "line=$LINE" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions for code review
-        uses: fractureinc/claude-code-github-action@v0.2.1
+        uses: fractureinc/claude-code-github-action@v0.2.2
         with:
           mode: 'suggest-review'
           pr-number: ${{ steps.details.outputs.number }}
@@ -151,5 +151,6 @@ jobs:
           file-path: ${{ steps.details.outputs.file_path }}
           line-number: ${{ steps.details.outputs.line }}
           comment-id: ${{ steps.details.outputs.comment_id }}
+          strict-mode: 'true'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
