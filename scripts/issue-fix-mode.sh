@@ -46,6 +46,13 @@ echo "Branch Prefix: ${BRANCH_PREFIX:-fix}"
 echo "$GITHUB_TOKEN" | gh auth login --with-token
 export ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY"
 
+# Check Claude CLI availability and version
+echo "Checking Claude CLI installation..."
+which claude || echo "Claude CLI not found in PATH"
+claude --version || echo "Failed to get Claude version"
+echo "Claude CLI help:"
+claude --help || echo "Failed to get Claude help"
+
 # Create temp files with descriptive names for better debugging
 RESPONSE_FILE=$(mktemp -t "claude_analysis_XXXXXX")
 FIX_DETAILS_FILE=$(mktemp -t "claude_fix_details_XXXXXX")

@@ -29,7 +29,8 @@ jobs:
           git config --global user.email "claude-bot@example.com"
           
       - name: Process issue with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.3.3
+        id: claude-process
+        uses: fractureinc/claude-code-github-action@v0.3.4
         with:
           mode: 'issue-fix'
           issue-number: ${{ github.event.issue.number }}
@@ -38,3 +39,18 @@ jobs:
           branch-prefix: 'fix'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Collect debug information
+        if: always()
+        run: |
+          echo "Collecting debug information..."
+          mkdir -p /tmp/claude-debug
+          cp /tmp/claude_* /tmp/claude-debug/ || echo "No claude debug files found"
+          find /tmp -name "claude_*" -type f -exec ls -la {} \; || echo "No claude files found"
+          
+      - name: Upload debug artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: claude-debug-${{ github.event.issue.number }}
+          path: /tmp/claude-debug/
