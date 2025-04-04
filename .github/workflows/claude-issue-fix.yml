@@ -41,17 +41,9 @@ jobs:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Collect debug information
-        if: always()
-        run: |
-          echo "Collecting debug information..."
-          mkdir -p /tmp/claude-debug
-          cp /tmp/claude_* /tmp/claude-debug/ || echo "No claude debug files found"
-          find /tmp -name "claude_*" -type f -exec ls -la {} \; || echo "No claude files found"
-          
-      - name: Upload debug artifacts
+      - name: Upload claude output artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: claude-debug-${{ github.event.issue.number }}
-          path: /tmp/claude-debug/
+          name: claude-output-issue-${{ github.event.issue.number }}
+          path: claude-output/

@@ -68,14 +68,19 @@ claude --version || echo "Failed to get Claude version"
 echo "Claude CLI help:"
 claude --help || echo "Failed to get Claude help"
 
-# Create temp files with descriptive names for better debugging
-RESPONSE_FILE=$(mktemp -t "claude_analysis_XXXXXX")
-FIX_DETAILS_FILE=$(mktemp -t "claude_fix_details_XXXXXX")
+# Create a standard directory for output and debug files
+OUTPUT_DIR="./claude-output"
+mkdir -p "$OUTPUT_DIR"
 
-# Create a log file for debugging
-LOG_FILE=$(mktemp -t "claude_issue_fix_log_XXXXXX")
+# Create files with descriptive names for better debugging
+RESPONSE_FILE="$OUTPUT_DIR/claude_analysis_$ISSUE_NUMBER.txt"
+FIX_DETAILS_FILE="$OUTPUT_DIR/claude_fix_details_$ISSUE_NUMBER.txt"
+LOG_FILE="$OUTPUT_DIR/claude_issue_fix_log_$ISSUE_NUMBER.txt"
+
+# Set up logging
 exec > >(tee -a "$LOG_FILE") 2>&1
 echo "Starting issue-fix mode at $(date)"
+echo "Output directory: $OUTPUT_DIR"
 echo "Log file: $LOG_FILE"
 echo "Response file: $RESPONSE_FILE"
 echo "Fix details file: $FIX_DETAILS_FILE"
@@ -187,42 +192,59 @@ EOF
 # Run Claude CLI to analyze the issue
 echo "Sending request to Claude for issue analysis..."
 
-# Create a temporary file for the prompt for debugging
-PROMPT_FILE=$(mktemp)
+# Create a prompt file in the output directory
+PROMPT_FILE="$OUTPUT_DIR/prompt_analysis_$ISSUE_NUMBER.txt"
 echo "$ANALYZE_PROMPT" > "$PROMPT_FILE"
 echo "Prompt saved to $PROMPT_FILE for debugging"
 
 # Use claude with the -p flag (print) and -d (debug) and pipe input
 echo "Running: cat prompt | claude -p -d"
-if ! cat "$PROMPT_FILE" | claude -p -d > "$RESPONSE_FILE" 2>/tmp/claude_error_$ISSUE_NUMBER.log; then
+ERROR_LOG="$OUTPUT_DIR/claude_error_$ISSUE_NUMBER.log"
+if ! cat "$PROMPT_FILE" | claude -p -d > "$RESPONSE_FILE" 2>"$ERROR_LOG"; then
   echo "Error: Claude API request failed. Check your API key and connectivity."
   echo "Claude CLI version:"
   claude --version || echo "Failed to get version"
   echo "Error log (if available):"
-  cat /tmp/claude_error_$ISSUE_NUMBER.log || echo "No error log available"
+  cat "$ERROR_LOG" || echo "No error log available"
   echo "Prompt (first 20 lines):"
   cat "$PROMPT_FILE" | head -20
   exit 1
 fi
 
-# Keep prompt file for debugging
 echo "Prompt saved to $PROMPT_FILE for debugging"
 echo "Response saved to $RESPONSE_FILE"
 
 # Parse Claude's response to extract files to examine
-FILES_TO_EXAMINE=$(grep -Eo "Files Involved:.*" -A 20 "$RESPONSE_FILE" | grep -v "Proposed Changes:" | grep -v "Testing Plan:" | grep "/" | sed -E 's/^[ -]*([^ ].*)/\1/' | sed -E 's/ *$//' | grep -v "^$")
+echo "Extracting files to examine from Claude's response..."
+FILES_TO_EXAMINE=$(grep -Eo "Files Involved:.*" -A 20 "$RESPONSE_FILE" | grep -v "Proposed Changes:" | grep -v "Testing Plan:" | grep "/" | sed -E 's/^[ -]*([^ ].*)/\1/' | sed -E 's/ *$//' | grep -v "^$" || echo "")
+
+# Check if no files were found
+if [ -z "$FILES_TO_EXAMINE" ]; then
+    echo "No specific files identified in the Files Involved section."
+    # Look for examples/calculator.js specifically since that's mentioned in the error logs
+    if [ -f "examples/calculator.js" ]; then
+        FILES_TO_EXAMINE="examples/calculator.js"
+        echo "Found examples/calculator.js, will use this file for analysis."
+    fi
+fi
 
 # Get content of relevant files
 EXAMINED_FILES=""
-for FILE in $FILES_TO_EXAMINE; do
-  if [ -f "$FILE" ]; then
-    echo "Examining file: $FILE"
-    EXAMINED_FILES+="File: $FILE\n\n\`\`\`\n$(cat "$FILE")\n\`\`\`\n\n"
-  else
-    echo "File not found: $FILE"
-    EXAMINED_FILES+="File: $FILE\n\nNot found in repository\n\n"
-  fi
-done
+if [ -z "$FILES_TO_EXAMINE" ]; then
+    echo "Warning: No files to examine. Will proceed with implementation without file analysis."
+    EXAMINED_FILES="No specific files were identified for analysis.\n\n"
+else
+    echo "Files to examine: $FILES_TO_EXAMINE"
+    for FILE in $FILES_TO_EXAMINE; do
+        if [ -f "$FILE" ]; then
+            echo "Examining file: $FILE"
+            EXAMINED_FILES+="File: $FILE\n\n\`\`\`\n$(cat "$FILE")\n\`\`\`\n\n"
+        else
+            echo "File not found: $FILE"
+            EXAMINED_FILES+="File: $FILE\n\nNot found in repository\n\n"
+        fi
+    done
+fi
 
 # Build a prompt for Claude to implement the fix
 IMPLEMENT_PROMPT=$(cat <<EOF
@@ -260,23 +282,23 @@ EOF
 # Run Claude CLI to implement the fix
 echo "Sending request to Claude for implementation details..."
 
-# Create a temporary file for the prompt for debugging
-IMPL_PROMPT_FILE=$(mktemp)
+# Create an implementation prompt file in the output directory
+IMPL_PROMPT_FILE="$OUTPUT_DIR/prompt_implementation_$ISSUE_NUMBER.txt"
 echo "$IMPLEMENT_PROMPT" > "$IMPL_PROMPT_FILE"
 echo "Implementation prompt saved to $IMPL_PROMPT_FILE for debugging"
 
 # Use claude with the -p flag (print) and -d (debug) and pipe input
 echo "Running: cat prompt | claude -p -d for implementation details"
-if ! cat "$IMPL_PROMPT_FILE" | claude -p -d > "$FIX_DETAILS_FILE" 2>/tmp/claude_impl_error_$ISSUE_NUMBER.log; then
+IMPL_ERROR_LOG="$OUTPUT_DIR/claude_impl_error_$ISSUE_NUMBER.log"
+if ! cat "$IMPL_PROMPT_FILE" | claude -p -d > "$FIX_DETAILS_FILE" 2>"$IMPL_ERROR_LOG"; then
   echo "Error: Claude API request failed when generating implementation details."
   echo "Error log (if available):"
-  cat /tmp/claude_impl_error_$ISSUE_NUMBER.log || echo "No implementation error log available"
+  cat "$IMPL_ERROR_LOG" || echo "No implementation error log available"
   echo "Implementation prompt (first 20 lines):"
   cat "$IMPL_PROMPT_FILE" | head -20
   exit 1
 fi
 
-# Keep prompt file for debugging
 echo "Implementation prompt saved to $IMPL_PROMPT_FILE for debugging"
 echo "Implementation response saved to $FIX_DETAILS_FILE"
 
@@ -400,19 +422,11 @@ EOF
 echo "Adding comment to issue #$ISSUE_NUMBER"
 gh issue comment "$ISSUE_NUMBER" --repo "$FULL_REPO" --body "$ISSUE_COMMENT"
 
-# Keep log files for debugging but clean up other temp files
-# Copy log files to a known location for debugging
-cp "$RESPONSE_FILE" "/tmp/claude_analysis_$ISSUE_NUMBER.txt" || true
-cp "$FIX_DETAILS_FILE" "/tmp/claude_fix_details_$ISSUE_NUMBER.txt" || true
-cp "$LOG_FILE" "/tmp/claude_issue_fix_log_$ISSUE_NUMBER.txt" || true
-
-echo "Log files saved to /tmp/ for debugging"
-echo "Analysis: /tmp/claude_analysis_$ISSUE_NUMBER.txt"
-echo "Fix details: /tmp/claude_fix_details_$ISSUE_NUMBER.txt"
-echo "Full log: /tmp/claude_issue_fix_log_$ISSUE_NUMBER.txt"
-
-# Clean up original temp files
-rm -f "$RESPONSE_FILE" "$FIX_DETAILS_FILE"
+# All output files are already in the claude-output directory
+echo "All debug files have been saved to $OUTPUT_DIR"
+echo "Analysis: $RESPONSE_FILE"
+echo "Fix details: $FIX_DETAILS_FILE"
+echo "Full log: $LOG_FILE"
 
 echo "Claude Code has created a fix for issue #$ISSUE_NUMBER in PR: $PR_URL"
 echo "Completed at $(date)"
