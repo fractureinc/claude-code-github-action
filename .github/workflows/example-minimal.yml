@@ -18,4 +18,3 @@ jobs:
       strict-mode: true          # Set to false to allow Claude to make additional improvements
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

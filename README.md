@@ -30,12 +30,11 @@ on:
 
 jobs:
   claude-integration:
-    uses: fractureinc/claude-code-github-action/.github/workflows/claude-full.yml@v0.5.3
+    uses: fractureinc/claude-code-github-action/.github/workflows/claude-full.yml@v0.5.4
     with:
       issue-label: 'claude-fix'  # Optional: customize the trigger label
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 **File: `.github/workflows/claude-issue-fix.yml`**
@@ -48,12 +47,11 @@ on:
 
 jobs:
   claude-label-fix:
-    uses: fractureinc/claude-code-github-action/.github/workflows/claude-label-fix.yml@v0.5.3
+    uses: fractureinc/claude-code-github-action/.github/workflows/claude-label-fix.yml@v0.5.4
     with:
       issue-label: 'claude-fix'  # Must match your chosen label
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### 2. Use Claude in PRs and Issues
@@ -99,7 +97,7 @@ The reusable workflows support several configuration options:
 ```yaml
 jobs:
   claude-integration:
-    uses: fractureinc/claude-code-github-action/.github/workflows/claude-full.yml@v0.5.3
+    uses: fractureinc/claude-code-github-action/.github/workflows/claude-full.yml@v0.5.4
     with:
       # All parameters are optional with sensible defaults
       issue-label: 'claude-fix'  # Label that triggers issue fixes
@@ -108,7 +106,6 @@ jobs:
       strict-mode: true          # When false, allows Claude to add improvements
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### Label-Based Integration (`claude-label-fix.yml`)
@@ -116,7 +113,7 @@ jobs:
 ```yaml
 jobs:
   claude-label-fix:
-    uses: fractureinc/claude-code-github-action/.github/workflows/claude-label-fix.yml@v0.5.3
+    uses: fractureinc/claude-code-github-action/.github/workflows/claude-label-fix.yml@v0.5.4
     with:
       # All parameters are optional with sensible defaults
       issue-label: 'claude-fix'  # Must match the label you're using
@@ -124,7 +121,6 @@ jobs:
       debug-mode: false          # Enable verbose logging
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 Only repo maintainers with write access can add labels, providing security control over which issues Claude will fix.
@@ -156,7 +152,7 @@ All parameters are optional and have sensible defaults.
 
 ## Enhanced Context for Claude
 
-With version 0.5.3, Claude now receives complete context for your PRs and issues, including:
+With version 0.5.4, Claude now receives complete context for your PRs and issues, including:
 
 - PR metadata (title, description, branch info)
 - Issue details (title, description, labels)

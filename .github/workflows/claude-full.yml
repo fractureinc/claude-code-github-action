@@ -26,9 +26,6 @@ on:
     secrets:
       ANTHROPIC_API_KEY:
         required: true
-      GH_TOKEN:
-        required: true
-        description: 'GitHub token for repository access'
 
 jobs:
   # Handle issue analysis comments
@@ -71,7 +68,7 @@ jobs:
           feedback: ${{ steps.issue.outputs.feedback }}
           debug-mode: ${{ inputs.debug-mode || 'false' }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ github.token }}
       
       - name: Upload claude output artifacts
         if: always()
@@ -97,7 +94,7 @@ jobs:
       
       - name: Setup GitHub CLI
         run: |
-          gh auth login --with-token <<< "${{ secrets.GH_TOKEN }}"
+          gh auth login --with-token <<< "${{ github.token }}"
 
       - name: Setup git user
         run: |
@@ -132,7 +129,7 @@ jobs:
           debug-mode: ${{ inputs.debug-mode || 'false' }}
           feedback: ${{ steps.issue.outputs.feedback }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ github.token }}
       
       - name: Upload claude output artifacts
         if: always()
@@ -179,7 +176,7 @@ jobs:
           feedback: ${{ steps.pr.outputs.feedback }}
           debug-mode: ${{ inputs.debug-mode || 'false' }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ github.token }}
 
   process-pr-suggestions:
     runs-on: ubuntu-latest
@@ -219,7 +216,7 @@ jobs:
           strict-mode: ${{ inputs.strict-mode || 'true' }}
           debug-mode: ${{ inputs.debug-mode || 'false' }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ github.token }}
           
   # Handle code review comments  
   process-review-comment:
@@ -275,7 +272,7 @@ jobs:
           feedback: ${{ steps.details.outputs.feedback }}
           debug-mode: ${{ inputs.debug-mode || 'false' }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ github.token }}
           
   process-suggest-review-comment:
     runs-on: ubuntu-latest
@@ -334,4 +331,4 @@ jobs:
           strict-mode: ${{ inputs.strict-mode || 'true' }}
           debug-mode: ${{ inputs.debug-mode || 'false' }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ github.token }}

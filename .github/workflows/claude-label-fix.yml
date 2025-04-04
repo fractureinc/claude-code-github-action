@@ -21,9 +21,6 @@ on:
     secrets:
       ANTHROPIC_API_KEY:
         required: true
-      GH_TOKEN:
-        required: true
-        description: 'GitHub token for repository access'
 
 jobs:
   process-issue-fix:
@@ -42,7 +39,7 @@ jobs:
       
       - name: Setup GitHub CLI
         run: |
-          gh auth login --with-token <<< "${{ secrets.GH_TOKEN }}"
+          gh auth login --with-token <<< "${{ github.token }}"
 
       - name: Setup git user
         run: |
@@ -60,7 +57,7 @@ jobs:
           issue-label: ${{ inputs.issue-label || 'claude-fix' }}
           debug-mode: ${{ inputs.debug-mode || 'false' }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ github.token }}
       
       - name: Upload claude output artifacts
         if: always()
