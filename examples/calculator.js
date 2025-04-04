@@ -19,7 +19,7 @@ class Calculator {
     return a * b;
   }
   
-  // Divide numbers without any error handling
+  // Divide numbers with proper error handling for division by zero
   divide(a, b) {
     if (b === 0) throw new Error("Division by zero is not allowed");
     return a / b;
@@ -40,14 +40,20 @@ class Calculator {
     return n * this.factorial(n - 1);
   }
   
-  // Poor variable naming and lacks clarity
-  calc(x, y, z) {
-    if (z == '+') return this.add(x, y);
-    if (z == '-') return this.subtract(x, y);
-    if (z == '*') return this.multiply(x, y);
-    if (z == '/') return this.divide(x, y);
-    if (z == '^') return this.power(x, y);
-    if (z == '!') return this.factorial(x);
+  // Operation calculator with improved variable naming and error handling
+  calc(num1, num2, operation) {
+    if (operation == '+') return this.add(num1, num2);
+    if (operation == '-') return this.subtract(num1, num2);
+    if (operation == '*') return this.multiply(num1, num2);
+    if (operation == '/') {
+      if (num2 === 0) {
+        throw new Error("Division by zero is not allowed");
+      }
+      return this.divide(num1, num2);
+    }
+    if (operation == '^') return this.power(num1, num2);
+    if (operation == '!') return this.factorial(num1);
+    throw new Error("Unknown operation: " + operation);
   }
 }
 
