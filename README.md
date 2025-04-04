@@ -102,7 +102,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for issue analysis
-        uses: fractureinc/claude-code-github-action@v0.3.9
+        uses: fractureinc/claude-code-github-action@v0.4.0
         with:
           mode: 'issue-analyze'
           issue-number: ${{ steps.issue.outputs.number }}
@@ -146,7 +146,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for issue fix
-        uses: fractureinc/claude-code-github-action@v0.3.9
+        uses: fractureinc/claude-code-github-action@v0.4.0
         with:
           mode: 'issue-fix'
           issue-number: ${{ steps.issue.outputs.number }}
@@ -182,7 +182,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.3.9
+        uses: fractureinc/claude-code-github-action@v0.4.0
         with:
           mode: 'review'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -215,7 +215,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions
-        uses: fractureinc/claude-code-github-action@v0.3.9
+        uses: fractureinc/claude-code-github-action@v0.4.0
         with:
           mode: 'suggest'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -255,7 +255,7 @@ jobs:
           echo "line=$LINE" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for code review comment
-        uses: fractureinc/claude-code-github-action@v0.3.9
+        uses: fractureinc/claude-code-github-action@v0.4.0
         with:
           mode: 'review'
           pr-number: ${{ steps.details.outputs.number }}
@@ -295,7 +295,7 @@ jobs:
           echo "line=$LINE" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions for code review
-        uses: fractureinc/claude-code-github-action@v0.3.9
+        uses: fractureinc/claude-code-github-action@v0.4.0
         with:
           mode: 'suggest-review'
           pr-number: ${{ steps.details.outputs.number }}
@@ -344,7 +344,7 @@ jobs:
           git config --global user.email "claude-bot@example.com"
           
       - name: Process issue with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.3.9
+        uses: fractureinc/claude-code-github-action@v0.4.0
         with:
           mode: 'issue-fix'
           issue-number: ${{ github.event.issue.number }}
@@ -398,7 +398,7 @@ This workflow is triggered when an issue is labeled with the configured label (d
 
 ## Enhanced Context for Claude
 
-With version 0.3.9, Claude now receives complete context for your PRs and issues, including:
+With version 0.4.0, Claude now receives complete context for your PRs and issues, including:
 
 - PR metadata (title, description, branch info)
 - Issue details (title, description, labels)
