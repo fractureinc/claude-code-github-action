@@ -117,22 +117,30 @@ If you need to see specific files first, indicate which ones you need to examine
 EOF
 )
 
-# Run Claude CLI to analyze the issue using a temp file for the prompt
+# Run Claude CLI to analyze the issue
 echo "Sending request to Claude for issue analysis..."
 
-# Create a temporary file for the prompt
+# Create a temporary file for the prompt for debugging
 PROMPT_FILE=$(mktemp)
 echo "$ANALYZE_PROMPT" > "$PROMPT_FILE"
+echo "Prompt saved to $PROMPT_FILE for debugging"
 
-# Use claude with the -f flag to read from a file
-if ! claude -f "$PROMPT_FILE" > "$RESPONSE_FILE"; then
+# Use claude with the -p flag (print) and -d (debug) and pipe input
+echo "Running: cat prompt | claude -p -d"
+if ! cat "$PROMPT_FILE" | claude -p -d > "$RESPONSE_FILE" 2>/tmp/claude_error_$ISSUE_NUMBER.log; then
   echo "Error: Claude API request failed. Check your API key and connectivity."
-  cat "$PROMPT_FILE" | head -20  # Show part of the prompt for debugging
+  echo "Claude CLI version:"
+  claude --version || echo "Failed to get version"
+  echo "Error log (if available):"
+  cat /tmp/claude_error_$ISSUE_NUMBER.log || echo "No error log available"
+  echo "Prompt (first 20 lines):"
+  cat "$PROMPT_FILE" | head -20
   exit 1
 fi
 
-# Clean up the prompt file
-rm -f "$PROMPT_FILE"
+# Keep prompt file for debugging
+echo "Prompt saved to $PROMPT_FILE for debugging"
+echo "Response saved to $RESPONSE_FILE"
 
 # Parse Claude's response to extract files to examine
 FILES_TO_EXAMINE=$(grep -Eo "Files Involved:.*" -A 20 "$RESPONSE_FILE" | grep -v "Proposed Changes:" | grep -v "Testing Plan:" | grep "/" | sed -E 's/^[ -]*([^ ].*)/\1/' | sed -E 's/ *$//' | grep -v "^$")
@@ -182,21 +190,28 @@ If you need to create a completely new file, specify the full file path and prov
 EOF
 )
 
-# Run Claude CLI to implement the fix using a temp file for the prompt
+# Run Claude CLI to implement the fix
 echo "Sending request to Claude for implementation details..."
 
-# Create a temporary file for the prompt
+# Create a temporary file for the prompt for debugging
 IMPL_PROMPT_FILE=$(mktemp)
 echo "$IMPLEMENT_PROMPT" > "$IMPL_PROMPT_FILE"
+echo "Implementation prompt saved to $IMPL_PROMPT_FILE for debugging"
 
-# Use claude with the -f flag to read from a file
-if ! claude -f "$IMPL_PROMPT_FILE" > "$FIX_DETAILS_FILE"; then
+# Use claude with the -p flag (print) and -d (debug) and pipe input
+echo "Running: cat prompt | claude -p -d for implementation details"
+if ! cat "$IMPL_PROMPT_FILE" | claude -p -d > "$FIX_DETAILS_FILE" 2>/tmp/claude_impl_error_$ISSUE_NUMBER.log; then
   echo "Error: Claude API request failed when generating implementation details."
+  echo "Error log (if available):"
+  cat /tmp/claude_impl_error_$ISSUE_NUMBER.log || echo "No implementation error log available"
+  echo "Implementation prompt (first 20 lines):"
+  cat "$IMPL_PROMPT_FILE" | head -20
   exit 1
 fi
 
-# Clean up the prompt file
-rm -f "$IMPL_PROMPT_FILE"
+# Keep prompt file for debugging
+echo "Implementation prompt saved to $IMPL_PROMPT_FILE for debugging"
+echo "Implementation response saved to $FIX_DETAILS_FILE"
 
 # Parse Claude's response to extract file paths and changes
 FILES_TO_MODIFY=$(grep -o "For file [^ ]*:" "$FIX_DETAILS_FILE" | sed -E 's/For file ([^:]*):$/\1/')
