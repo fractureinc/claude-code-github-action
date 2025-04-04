@@ -42,12 +42,13 @@ git checkout $PR_HEAD
 # Get the specific file content
 FILE_CONTENT=$(cat "$FILE_PATH")
 
-# Get a context window around the line in question (10 lines before and after)
-LINE_START=$((LINE_NUMBER - 10))
+# Get a context window around the line in question (15 lines before and after)
+# Using a larger window to allow Claude to see more surrounding context
+LINE_START=$((LINE_NUMBER - 15))
 if [ $LINE_START -lt 1 ]; then
     LINE_START=1
 fi
-LINE_END=$((LINE_NUMBER + 10))
+LINE_END=$((LINE_NUMBER + 15))
 CONTEXT_CONTENT=$(sed -n "${LINE_START},${LINE_END}p" "$FILE_PATH")
 
 # Get repo information
@@ -67,7 +68,8 @@ IMPORTANT - STRICT MODE IS ENABLED:
 2. Do NOT make any unrelated improvements to the code, even if they would be beneficial
 3. If the user asks to "add X", focus exclusively on adding X, not refactoring existing code
 4. If you identify other issues in the code, DO NOT address them in your suggestion
-5. Stay hyper-focused on the specific request, even if other improvements seem obvious
+5. Stay focused on the specific request, even if other improvements seem obvious
+6. You MAY modify multiple lines if necessary to properly implement what was requested, but do not add unrelated features
 EOF
 )
 fi
@@ -85,8 +87,10 @@ You MUST format your response as a SINGLE suggestion using the exact GitHub sugg
 $STRICT_INSTRUCTIONS
 
 Guidelines:
-1. Focus ONLY on line $LINE_NUMBER and immediately surrounding lines
-2. Keep the suggestion concise - it should replace just what needs to be changed
+1. You should suggest changes to fix the issue at line $LINE_NUMBER
+2. GitHub's suggestion format can handle multi-line changes, so you can suggest:
+   - Changes to just line $LINE_NUMBER if that's sufficient
+   - Changes to an entire function or block if needed to properly fix the issue
 3. Maintain the existing indentation and code style
 4. Ensure your suggestion is syntactically correct
 5. Start your response with a brief explanation, then provide the suggestion block
@@ -110,7 +114,7 @@ $FILE_CONTENT
 User query:
 $FEEDBACK
 
-Provide a single, specific suggestion that addresses this query for the code at line $LINE_NUMBER.
+Provide a single suggestion that addresses this query. Your suggestion can include multiple lines if needed to properly implement the requested functionality or fix. Include enough context so the suggestion can be applied cleanly.
 EOF
 )
 
