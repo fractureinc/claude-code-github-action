@@ -41,7 +41,7 @@ class Calculator {
   }
   
   // Poor variable naming and lacks clarity
-  calc(x, y, z) {
+  calc(x, y, z) { 
     if (z == '+') return this.add(x, y);
     if (z == '-') return this.subtract(x, y);
     if (z == '*') return this.multiply(x, y);
