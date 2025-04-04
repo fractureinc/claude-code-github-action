@@ -29,7 +29,7 @@ jobs:
           git config --global user.email "claude-bot@example.com"
           
       - name: Process issue with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.3.0
+        uses: fractureinc/claude-code-github-action@v0.3.1
         with:
           mode: 'issue-fix'
           issue-number: ${{ github.event.issue.number }}
