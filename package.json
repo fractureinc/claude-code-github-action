@@ -1,7 +1,7 @@
 {
   "name": "claude-code-github-action",
-  "version": "0.2.0",
-  "description": "GitHub action for Claude Code Integration in PR comments, reviews and code suggestions",
+  "version": "0.2.1",
+  "description": "GitHub action for Claude Code Integration in PR comments, reviews and inline code suggestions",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -19,7 +19,8 @@
     "ai",
     "review",
     "pull-request",
-    "suggestions"
+    "suggestions",
+    "inline"
   ],
   "author": "Fracture Inc",
   "license": "MIT",

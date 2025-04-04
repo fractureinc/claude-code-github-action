@@ -5,7 +5,8 @@ This GitHub Action integrates Claude Code in your GitHub workflows, enabling AI-
 ## Features
 
 - Process PR comments prefixed with "claude:" for general analysis
-- Process PR comments prefixed with "claude-suggest:" for clickable code suggestions
+- Process PR comments prefixed with "claude-suggest:" for code suggestions
+- Process code review comments to provide in-line analysis and suggestions
 - Provide rich context about the PR to Claude, including file diffs
 - Get AI-powered code analysis and suggestions
 - Create GitHub-compatible suggested changes that can be applied with one click
@@ -48,7 +49,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.2.0
+        uses: fractureinc/claude-code-github-action@v0.2.1
         with:
           mode: 'review'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -80,7 +81,7 @@ jobs:
           echo "feedback=$FEEDBACK" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions
-        uses: fractureinc/claude-code-github-action@v0.2.0
+        uses: fractureinc/claude-code-github-action@v0.2.1
         with:
           mode: 'suggest'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -104,7 +105,7 @@ jobs:
 
 ## Enhanced Context for Claude
 
-With version 0.2.0, Claude now receives complete context for your PRs, including:
+With version 0.2.1, Claude now receives complete context for your PRs, including:
 
 - PR metadata (title, description, branch info)
 - List of all files changed
@@ -120,7 +121,11 @@ Standard mode that provides Claude's analysis and feedback about your PR changes
 
 ### Suggest Mode (`mode: 'suggest'`)
 
-Creates GitHub-compatible suggested changes that can be applied with one click directly from the PR interface.
+Creates suggested changes in a PR comment that outline potential code improvements.
+
+### Suggest Review Mode (`mode: 'suggest-review'`)
+
+Creates true GitHub-compatible suggestions that can be applied with one click directly from the code review interface. These are attached to specific lines of code.
 
 ### Direct Mode (`mode: 'direct'`)
 
@@ -146,17 +151,19 @@ Sends a query directly to Claude and saves the response to a file without PR con
 
 ## How It Works
 
-1. The action is triggered when a comment with the appropriate prefix is detected on a PR
-2. The action extracts the PR number and the user's query
+1. The action is triggered when a comment with the appropriate prefix is detected (either on the PR or in code review)
+2. The action extracts the PR number, user's query, and (for code review comments) the file path and line number
 3. The repository is checked out to provide full code context
 4. Using GitHub CLI, the action fetches comprehensive information about the PR including:
    - PR metadata
-   - List of files changed  
+   - List of files changed
    - Complete diff of all changes
+   - For code review comments, specific file content and context around the commented line
 5. This rich context is provided to Claude along with the user's query
 6. Claude processes the information and provides a helpful response
 7. For review mode: The response is posted as a comment on the PR
-8. For suggest mode: Claude formats responses as GitHub suggested changes that can be applied with one click
+8. For suggest mode: Claude formats responses with code suggestions in the PR comment
+9. For suggest-review mode: Claude creates true GitHub-compatible suggestions attached to specific lines of code
 
 ## Permissions
 

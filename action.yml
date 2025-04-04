@@ -6,7 +6,7 @@ branding:
 
 inputs:
   mode:
-    description: 'The mode to run the action in (review, pr-comment, suggest, direct)'
+    description: 'The mode to run the action in (review, suggest, suggest-review, direct)'
     required: true
     default: 'review'
   pr-number:
@@ -14,6 +14,15 @@ inputs:
     required: false
   feedback:
     description: 'The feedback text from the comment'
+    required: false
+  file-path:
+    description: 'Path to the file being reviewed (for suggest-review mode)'
+    required: false
+  line-number:
+    description: 'Line number in the file (for suggest-review mode)'
+    required: false
+  comment-id:
+    description: 'GitHub comment ID to reply to (for suggest-review mode)'
     required: false
   anthropic-api-key:
     description: 'Anthropic API key for Claude access'
@@ -64,3 +73,10 @@ runs:
       run: |
         chmod +x ${{ github.action_path }}/scripts/direct-mode.sh
         ${{ github.action_path }}/scripts/direct-mode.sh "${{ inputs.feedback }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.output-file }}"
+        
+    - name: Process In-line Code Suggestions
+      if: inputs.mode == 'suggest-review'
+      shell: bash
+      run: |
+        chmod +x ${{ github.action_path }}/scripts/suggest-review-mode.sh
+        ${{ github.action_path }}/scripts/suggest-review-mode.sh "${{ inputs.pr-number }}" "${{ inputs.feedback }}" "${{ inputs.file-path }}" "${{ inputs.line-number }}" "${{ inputs.comment-id }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}"
