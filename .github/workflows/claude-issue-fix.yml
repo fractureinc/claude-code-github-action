@@ -30,7 +30,7 @@ jobs:
           
       - name: Process issue with Claude Code
         id: claude-process
-        uses: fractureinc/claude-code-github-action@v0.3.5
+        uses: fractureinc/claude-code-github-action@v0.3.6
         with:
           mode: 'issue-fix'
           issue-number: ${{ github.event.issue.number }}
