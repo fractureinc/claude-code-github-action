@@ -314,7 +314,7 @@ for FILE_PATH in $FILES_TO_MODIFY; do
   
   # Check if we need to create a new file
   if [ ! -f "$FILE_PATH" ]; then
-    # Get the content between the first code block markers
+    # Get the content between the first code block markers - using single quotes for robustness
     NEW_CONTENT=$(echo "$FILE_BLOCK" | sed -n '/```/,/```/p' | sed '1d;$d')
     
     # Create directory if it doesn't exist
@@ -324,34 +324,44 @@ for FILE_PATH in $FILES_TO_MODIFY; do
     echo "$NEW_CONTENT" > "$FILE_PATH"
     echo "Created new file: $FILE_PATH"
   else
-    # Extract diff blocks
-    DIFF_BLOCKS=$(echo "$FILE_BLOCK" | grep -A100 "^```diff" | sed -n '/^```diff/,/^```/p' | sed '1d;$d')
+    # Extract diff blocks - using a more robust approach to handle backticks
+    DIFF_BLOCKS=$(echo "$FILE_BLOCK" | grep -A100 '```diff' | sed -n '/```diff/,/```/p' | sed '1d;$d')
     
     # Create a temporary file for the new content
     TEMP_FILE=$(mktemp)
     cat "$FILE_PATH" > "$TEMP_FILE"
     
-    # Process each diff block
-    echo "$DIFF_BLOCKS" | while IFS= read -r LINE; do
-      if [[ "$LINE" == -* ]]; then
-        # Remove line (strip the leading -)
-        REMOVE_LINE="${LINE:1}"
-        sed -i.bak "s|$REMOVE_LINE||g" "$TEMP_FILE"
-      elif [[ "$LINE" == +* ]]; then
-        # Add line (strip the leading +)
-        ADD_LINE="${LINE:1}"
-        # Find the line above where we need to add
-        PREV_LINE=$(echo "$DIFF_BLOCKS" | grep -B1 "\\+$ADD_LINE" | head -n1)
-        if [[ "$PREV_LINE" == -* ]]; then
-          # Replace the removed line with the added line
-          PREV_LINE="${PREV_LINE:1}"
-          sed -i.bak "s|$PREV_LINE|$ADD_LINE|g" "$TEMP_FILE"
-        else
-          # Just append the line for now (this is simplistic)
-          echo "$ADD_LINE" >> "$TEMP_FILE"
+    # Check if we have any diff blocks to process
+    if [ -z "$DIFF_BLOCKS" ]; then
+      echo "Warning: No diff blocks found in Claude's response. Proceeding without changes."
+    else
+      echo "Found diff blocks, processing changes..."
+      # Process each diff block
+      echo "$DIFF_BLOCKS" | while IFS= read -r LINE; do
+        if [[ "$LINE" == -* ]]; then
+          # Remove line (strip the leading -)
+          REMOVE_LINE="${LINE:1}"
+          echo "Removing: $REMOVE_LINE"
+          sed -i.bak "s|$REMOVE_LINE||g" "$TEMP_FILE"
+        elif [[ "$LINE" == +* ]]; then
+          # Add line (strip the leading +)
+          ADD_LINE="${LINE:1}"
+          echo "Adding: $ADD_LINE"
+          # Find the line above where we need to add
+          PREV_LINE=$(echo "$DIFF_BLOCKS" | grep -B1 "\\+$ADD_LINE" | head -n1)
+          if [[ "$PREV_LINE" == -* ]]; then
+            # Replace the removed line with the added line
+            PREV_LINE="${PREV_LINE:1}"
+            echo "Replacing: $PREV_LINE with: $ADD_LINE"
+            sed -i.bak "s|$PREV_LINE|$ADD_LINE|g" "$TEMP_FILE"
+          else
+            # Just append the line for now (this is simplistic)
+            echo "Appending: $ADD_LINE"
+            echo "$ADD_LINE" >> "$TEMP_FILE"
+          fi
         fi
-      fi
-    done
+      done
+    fi
     
     # Move the modified content back to the original file
     mv "$TEMP_FILE" "$FILE_PATH"
