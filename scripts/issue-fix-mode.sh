@@ -12,6 +12,9 @@ GITHUB_TOKEN=$6
 ISSUE_LABEL=${7:-"claude-fix"}
 DEBUG_MODE=${8:-"false"}
 FEEDBACK=$9
+REQUIRE_ORG_MEMBERSHIP=${10:-"true"}
+ORGANIZATION=${11:-$REPO_OWNER}
+PERSONAL_ACCESS_TOKEN=${12:-$GITHUB_TOKEN}
 
 # Enable debug mode if requested
 if [[ "$DEBUG_MODE" == "true" ]]; then
@@ -66,9 +69,33 @@ echo "Repo Owner: $REPO_OWNER"
 echo "Repo Name: $REPO_NAME"
 echo "Branch Prefix: ${BRANCH_PREFIX:-fix}"
 
-# Set up authentication
+# Set up authentication for GitHub CLI
 echo "$GITHUB_TOKEN" | gh auth login --with-token
 export ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY"
+
+# Set up git identity if personal access token is provided
+if [[ "$PERSONAL_ACCESS_TOKEN" != "$GITHUB_TOKEN" ]]; then
+  echo "Using personal access token for git operations"
+  
+  # Extract user info from the token
+  USER_INFO=$(curl -s -H "Authorization: token $PERSONAL_ACCESS_TOKEN" https://api.github.com/user)
+  GIT_USER_NAME=$(echo "$USER_INFO" | jq -r '.name // .login')
+  GIT_USER_EMAIL=$(echo "$USER_INFO" | jq -r '.email // "\(.login)@users.noreply.github.com"')
+  
+  # Configure git to use the personal identity
+  git config --global user.name "$GIT_USER_NAME"
+  git config --global user.email "$GIT_USER_EMAIL"
+  
+  # Set credentials for remote push
+  REPO_URL=$(git config --get remote.origin.url)
+  # Convert HTTP URLs to use token authentication
+  if [[ "$REPO_URL" == https://* ]]; then
+    NEW_REPO_URL="https://x-access-token:$PERSONAL_ACCESS_TOKEN@${REPO_URL#https://}"
+    git remote set-url origin "$NEW_REPO_URL"
+  fi
+else
+  echo "Using default GitHub token for git operations"
+fi
 
 # Check Claude CLI availability and version
 echo "Checking Claude CLI installation..."
@@ -99,7 +126,7 @@ else
   FULL_REPO="$REPO_OWNER/$REPO_NAME"
 fi
 echo "Using repository: $FULL_REPO"
-if ! ISSUE_DETAILS=$(gh issue view $ISSUE_NUMBER --repo "$FULL_REPO" --json title,body,labels); then
+if ! ISSUE_DETAILS=$(gh issue view $ISSUE_NUMBER --repo "$FULL_REPO" --json title,body,labels,author); then
   echo "Error fetching issue details"
   exit 1
 fi
@@ -108,6 +135,39 @@ fi
 ISSUE_TITLE=$(echo "$ISSUE_DETAILS" | jq -r '.title')
 ISSUE_BODY=$(echo "$ISSUE_DETAILS" | jq -r '.body')
 ISSUE_LABELS=$(echo "$ISSUE_DETAILS" | jq -r '.labels[].name' | tr '\n' ',' | sed 's/,$//' || echo "none")
+ISSUE_AUTHOR=$(echo "$ISSUE_DETAILS" | jq -r '.author.login')
+
+# Check if user is a member of the organization if required
+if [[ "$REQUIRE_ORG_MEMBERSHIP" == "true" ]]; then
+  echo "Checking if $ISSUE_AUTHOR is a member of organization $ORGANIZATION"
+  ORG_CHECK=$(gh api -X GET /orgs/$ORGANIZATION/members/$ISSUE_AUTHOR --silent -i || true)
+  STATUS_CODE=$(echo "$ORG_CHECK" | head -n 1 | cut -d' ' -f2)
+  
+  if [[ "$STATUS_CODE" != "204" ]]; then
+    echo "User $ISSUE_AUTHOR is not a member of organization $ORGANIZATION. Skipping Claude fix."
+    
+    # Leave a comment on the issue explaining why the fix is skipped
+    ISSUE_COMMENT=$(cat <<EOF
+# Claude Code Fix Skipped
+
+Sorry, Claude Code can only fix issues created by organization members.
+
+This is to prevent API usage from users outside the organization.
+
+---
+🤖 Generated with Claude Code GitHub Action
+EOF
+)
+    
+    echo "Adding comment to issue #$ISSUE_NUMBER explaining why fix was skipped"
+    gh issue comment "$ISSUE_NUMBER" --repo "$FULL_REPO" --body "$ISSUE_COMMENT"
+    
+    echo "Exiting due to non-organization member request"
+    exit 0
+  else
+    echo "User $ISSUE_AUTHOR is a member of organization $ORGANIZATION. Proceeding with Claude fix."
+  fi
+fi
 
 # Get repo info for default branch
 REPO_INFO=$(gh repo view "$FULL_REPO" --json name,description,defaultBranchRef)
