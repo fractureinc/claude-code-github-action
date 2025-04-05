@@ -67,6 +67,7 @@ jobs:
           debug-mode: ${{ inputs.debug-mode || 'false' }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           github-token: ${{ github.token }}
+          personal-access-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       
       - name: Upload claude output artifacts
         if: always()

@@ -12,6 +12,7 @@ DEBUG_MODE=${6:-"false"}
 FEEDBACK=$7
 REQUIRE_ORG_MEMBERSHIP=${8:-"true"}
 ORGANIZATION=${9:-$REPO_OWNER}
+PERSONAL_ACCESS_TOKEN=${10:-$GITHUB_TOKEN}
 
 # Enable debug mode if requested
 if [[ "$DEBUG_MODE" == "true" ]]; then
@@ -108,7 +109,20 @@ ISSUE_AUTHOR=$(echo "$ISSUE_DETAILS" | jq -r '.author.login')
 # Check if user is a member of the organization if required
 if [[ "$REQUIRE_ORG_MEMBERSHIP" == "true" ]]; then
   echo "Checking if $ISSUE_AUTHOR is a member of organization $ORGANIZATION"
-  ORG_CHECK=$(gh api -X GET /orgs/$ORGANIZATION/members/$ISSUE_AUTHOR --silent -i || true)
+  
+  # Temporarily use the personal access token for org membership check if provided
+  if [[ "$PERSONAL_ACCESS_TOKEN" != "$GITHUB_TOKEN" ]]; then
+    # Save current token auth
+    TEMP_AUTH=$(gh auth status 2>&1 | grep "Logged in")
+    # Switch to personal token for org check
+    echo "$PERSONAL_ACCESS_TOKEN" | gh auth login --with-token
+    ORG_CHECK=$(gh api -X GET /orgs/$ORGANIZATION/members/$ISSUE_AUTHOR --silent -i || true)
+    # Switch back to github token
+    echo "$GITHUB_TOKEN" | gh auth login --with-token
+  else
+    ORG_CHECK=$(gh api -X GET /orgs/$ORGANIZATION/members/$ISSUE_AUTHOR --silent -i || true)
+  fi
+  
   STATUS_CODE=$(echo "$ORG_CHECK" | head -n 1 | cut -d' ' -f2)
   
   if [[ "$STATUS_CODE" != "204" ]]; then
