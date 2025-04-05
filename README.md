@@ -30,7 +30,7 @@ on:
 
 jobs:
   claude-integration:
-    uses: fractureinc/claude-code-github-action/.github/workflows/claude-full.yml@v0.5.4
+    uses: fractureinc/claude-code-github-action/.github/workflows/claude-full.yml@v0.5.5
     with:
       issue-label: 'claude-fix'  # Optional: customize the trigger label
     secrets:
@@ -47,7 +47,7 @@ on:
 
 jobs:
   claude-label-fix:
-    uses: fractureinc/claude-code-github-action/.github/workflows/claude-label-fix.yml@v0.5.4
+    uses: fractureinc/claude-code-github-action/.github/workflows/claude-label-fix.yml@v0.5.5
     with:
       issue-label: 'claude-fix'  # Must match your chosen label
     secrets:
@@ -97,7 +97,7 @@ The reusable workflows support several configuration options:
 ```yaml
 jobs:
   claude-integration:
-    uses: fractureinc/claude-code-github-action/.github/workflows/claude-full.yml@v0.5.4
+    uses: fractureinc/claude-code-github-action/.github/workflows/claude-full.yml@v0.5.5
     with:
       # All parameters are optional with sensible defaults
       issue-label: 'claude-fix'  # Label that triggers issue fixes
@@ -113,7 +113,7 @@ jobs:
 ```yaml
 jobs:
   claude-label-fix:
-    uses: fractureinc/claude-code-github-action/.github/workflows/claude-label-fix.yml@v0.5.4
+    uses: fractureinc/claude-code-github-action/.github/workflows/claude-label-fix.yml@v0.5.5
     with:
       # All parameters are optional with sensible defaults
       issue-label: 'claude-fix'  # Must match the label you're using
@@ -152,7 +152,7 @@ All parameters are optional and have sensible defaults.
 
 ## Enhanced Context for Claude
 
-With version 0.5.4, Claude now receives complete context for your PRs and issues, including:
+With version 0.5.5, Claude now receives complete context for your PRs and issues, including:
 
 - PR metadata (title, description, branch info)
 - Issue details (title, description, labels)
