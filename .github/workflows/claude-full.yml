@@ -53,7 +53,7 @@ jobs:
           echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for issue analysis
-        uses: fractureinc/claude-code-github-action@v0.5.4
+        uses: fractureinc/claude-code-github-action@v0.5.5
         with:
           mode: 'issue-analyze'
           issue-number: ${{ steps.issue.outputs.number }}
@@ -106,7 +106,7 @@ jobs:
           echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for issue fix
-        uses: fractureinc/claude-code-github-action@v0.5.4
+        uses: fractureinc/claude-code-github-action@v0.5.5
         with:
           mode: 'issue-fix'
           issue-number: ${{ steps.issue.outputs.number }}
@@ -151,7 +151,7 @@ jobs:
           echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.5.4
+        uses: fractureinc/claude-code-github-action@v0.5.5
         with:
           mode: 'review'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -184,7 +184,7 @@ jobs:
           echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions
-        uses: fractureinc/claude-code-github-action@v0.5.4
+        uses: fractureinc/claude-code-github-action@v0.5.5
         with:
           mode: 'suggest'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -227,7 +227,7 @@ jobs:
           echo "line=${LINE}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for code review comment
-        uses: fractureinc/claude-code-github-action@v0.5.4
+        uses: fractureinc/claude-code-github-action@v0.5.5
         with:
           mode: 'review'
           pr-number: ${{ steps.details.outputs.number }}
@@ -268,7 +268,7 @@ jobs:
           echo "line=${LINE}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions for code review
-        uses: fractureinc/claude-code-github-action@v0.5.4
+        uses: fractureinc/claude-code-github-action@v0.5.5
         with:
           mode: 'suggest-review'
           pr-number: ${{ steps.details.outputs.number }}
