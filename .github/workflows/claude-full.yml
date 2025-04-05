@@ -26,6 +26,8 @@ on:
     secrets:
       ANTHROPIC_API_KEY:
         required: true
+      PERSONAL_ACCESS_TOKEN:
+        required: false
 
 jobs:
   # Handle issue analysis comments
@@ -122,6 +124,7 @@ jobs:
           feedback: ${{ steps.issue.outputs.feedback }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           github-token: ${{ github.token }}
+          personal-access-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       
       - name: Upload claude output artifacts
         if: always()
