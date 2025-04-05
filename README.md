@@ -16,7 +16,7 @@ This GitHub Action integrates Claude Code in your GitHub workflows, enabling AI-
 
 ### 1. Add Claude to Your Repository
 
-Create two simple workflow files to integrate Claude with your repository:
+Create a workflow file to integrate Claude with your repository:
 
 **File: `.github/workflows/claude-code.yml`**
 ```yaml
