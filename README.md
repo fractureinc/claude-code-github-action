@@ -30,7 +30,7 @@ on:
 
 jobs:
   claude-integration:
-    uses: fractureinc/claude-code-github-action/.github/workflows/claude-full.yml@v0.6.0
+    uses: basicmachines-co/claude-code-github-action/.github/workflows/claude-full.yml@v0.10.0
     with:
       issue-label: 'claude-fix'  # Optional: customize the trigger label
     secrets:
@@ -47,7 +47,7 @@ on:
 
 jobs:
   claude-label-fix:
-    uses: fractureinc/claude-code-github-action/.github/workflows/claude-label-fix.yml@v0.6.0
+    uses: basicmachines-co/claude-code-github-action/.github/workflows/claude-label-fix.yml@v0.10.0
     with:
       issue-label: 'claude-fix'  # Must match your chosen label
     secrets:
@@ -97,7 +97,7 @@ The reusable workflows support several configuration options:
 ```yaml
 jobs:
   claude-integration:
-    uses: fractureinc/claude-code-github-action/.github/workflows/claude-full.yml@v0.6.0
+    uses: basicmachines-co/claude-code-github-action/.github/workflows/claude-full.yml@v0.10.0
     with:
       # All parameters are optional with sensible defaults
       issue-label: 'claude-fix'    # Label that triggers issue fixes
@@ -116,7 +116,7 @@ jobs:
 ```yaml
 jobs:
   claude-label-fix:
-    uses: fractureinc/claude-code-github-action/.github/workflows/claude-label-fix.yml@v0.6.0
+    uses: basicmachines-co/claude-code-github-action/.github/workflows/claude-label-fix.yml@v0.10.0
     with:
       # All parameters are optional with sensible defaults
       issue-label: 'claude-fix'    # Must match the label you're using
@@ -151,7 +151,7 @@ When using our reusable workflows, you only need to configure a few key options:
 |-----------|-------------|---------|---------|
 | `issue-label` | Label that triggers issue fixes | `claude-fix` | Both workflows |
 | `branch-prefix` | Prefix for branches created by fixes | `fix` | Both workflows |
-| `require-org-membership` | Require the issue creator to be an organization member | `true` | Both workflows |
+| `require-org-membership` | Require the comment author to be a public member of the organization | `true` | Both workflows |
 | `organization` | Organization name to check membership against | Repository owner | Both workflows |
 | `personal-access-token` | Token for commits to override the default GitHub token | None | Both workflows |
 | `debug-mode` | Enable verbose logging | `false` | Both workflows |
@@ -161,7 +161,7 @@ All parameters are optional and have sensible defaults.
 
 ## Enhanced Context for Claude
 
-With version 0.6.0, Claude now receives complete context for your PRs and issues, including:
+With version 0.10.0, Claude receives complete context for your PRs and issues, including:
 
 - PR metadata (title, description, branch info)
 - Issue details (title, description, labels)
@@ -222,6 +222,26 @@ permissions:
 - The `strict-mode` parameter limits Claude to only making requested changes
 - The `require-org-membership` option ensures only organization members can use Claude for issues
 - Using a personal access token for commits ensures proper attribution and bypasses CLA requirements
+
+### Organization Membership Visibility Requirement
+
+When using `require-org-membership: true` (which is the default), the GitHub user who triggers Claude (by commenting with `claude:` or `claude-fix:`) must be a **public** member of the organization.
+
+**Important:** By default, GitHub organization memberships are private, which means the API cannot verify your membership. To make your membership public:
+
+1. **Go to your organization page**: `https://github.com/your-organization-name`
+2. **Click on the "People" tab**
+3. **Find your username** in the member list
+4. **Click on the "Private" dropdown** next to your name
+5. **Select "Make public"**
+
+Alternatively, you can do this from your profile:
+1. Go to your GitHub profile
+2. Click on "Organizations" in the left sidebar
+3. Find the organization in the list
+4. Click the "Make public" button
+
+This allows the GitHub API to verify your organization membership when you use Claude Code action.
 
 ## License
 
