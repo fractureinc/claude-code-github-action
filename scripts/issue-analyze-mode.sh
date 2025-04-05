@@ -13,6 +13,7 @@ FEEDBACK=$7
 REQUIRE_ORG_MEMBERSHIP=${8:-"true"}
 ORGANIZATION=${9:-$REPO_OWNER}
 PERSONAL_ACCESS_TOKEN=${10:-$GITHUB_TOKEN}
+COMMENT_AUTHOR=${11:-""}
 
 # Enable debug mode if requested
 if [[ "$DEBUG_MODE" == "true" ]]; then
@@ -108,25 +109,34 @@ ISSUE_AUTHOR=$(echo "$ISSUE_DETAILS" | jq -r '.author.login')
 
 # Check if user is a member of the organization if required
 if [[ "$REQUIRE_ORG_MEMBERSHIP" == "true" ]]; then
-  echo "Checking if $ISSUE_AUTHOR is a member of organization $ORGANIZATION"
+  # Use the comment author for the org membership check if provided, otherwise fall back to issue author
+  CHECK_USER="${COMMENT_AUTHOR:-$ISSUE_AUTHOR}"
+  echo "Checking if $CHECK_USER is a member of organization $ORGANIZATION"
+  
+  # Debug output
+  echo "Comment Author: $COMMENT_AUTHOR"
+  echo "Issue Author: $ISSUE_AUTHOR"
+  echo "User being checked: $CHECK_USER"
   
   # Temporarily use the personal access token for org membership check if provided
   if [[ "$PERSONAL_ACCESS_TOKEN" != "$GITHUB_TOKEN" ]]; then
+    echo "Using Personal Access Token for organization membership check"
     # Save current token auth
     TEMP_AUTH=$(gh auth status 2>&1 | grep "Logged in")
     # Switch to personal token for org check
     echo "$PERSONAL_ACCESS_TOKEN" | gh auth login --with-token
-    ORG_CHECK=$(gh api -X GET /orgs/$ORGANIZATION/members/$ISSUE_AUTHOR --silent -i || true)
+    ORG_CHECK=$(gh api -X GET /orgs/$ORGANIZATION/members/$CHECK_USER --silent -i || true)
     # Switch back to github token
     echo "$GITHUB_TOKEN" | gh auth login --with-token
   else
-    ORG_CHECK=$(gh api -X GET /orgs/$ORGANIZATION/members/$ISSUE_AUTHOR --silent -i || true)
+    echo "Using GitHub Token for organization membership check"
+    ORG_CHECK=$(gh api -X GET /orgs/$ORGANIZATION/members/$CHECK_USER --silent -i || true)
   fi
   
   STATUS_CODE=$(echo "$ORG_CHECK" | head -n 1 | cut -d' ' -f2)
   
   if [[ "$STATUS_CODE" != "204" ]]; then
-    echo "User $ISSUE_AUTHOR is not a member of organization $ORGANIZATION. Skipping Claude analysis."
+    echo "User $CHECK_USER is not a member of organization $ORGANIZATION. Skipping Claude analysis."
     
     # Leave a comment on the issue explaining why the analysis is skipped
     ISSUE_COMMENT=$(cat <<EOF
@@ -147,7 +157,7 @@ EOF
     echo "Exiting due to non-organization member request"
     exit 0
   else
-    echo "User $ISSUE_AUTHOR is a member of organization $ORGANIZATION. Proceeding with Claude analysis."
+    echo "User $CHECK_USER is a member of organization $ORGANIZATION. Proceeding with Claude analysis."
   fi
 fi
 

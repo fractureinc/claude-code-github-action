@@ -65,6 +65,9 @@ inputs:
   personal-access-token:
     description: 'Optional personal access token for commits, to override the default GitHub token'
     required: false
+  comment-author:
+    description: 'The GitHub username of the person who made the comment'
+    required: false
   output-file:
     description: 'Path to write the output to (for direct mode)'
     required: false
@@ -121,11 +124,11 @@ runs:
       shell: bash
       run: |
         chmod +x ${{ github.action_path }}/scripts/issue-fix-mode.sh
-        ${{ github.action_path }}/scripts/issue-fix-mode.sh "${{ inputs.issue-number }}" "${{ inputs.repo-owner }}" "${{ inputs.repo-name }}" "${{ inputs.branch-prefix }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}" "${{ inputs.issue-label }}" "${{ inputs.debug-mode }}" "${{ inputs.feedback }}" "${{ inputs.require-org-membership }}" "${{ inputs.organization }}" "${{ inputs.personal-access-token }}"
+        ${{ github.action_path }}/scripts/issue-fix-mode.sh "${{ inputs.issue-number }}" "${{ inputs.repo-owner }}" "${{ inputs.repo-name }}" "${{ inputs.branch-prefix }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}" "${{ inputs.issue-label }}" "${{ inputs.debug-mode }}" "${{ inputs.feedback }}" "${{ inputs.require-org-membership }}" "${{ inputs.organization }}" "${{ inputs.personal-access-token }}" "${{ inputs.comment-author }}"
         
     - name: Process Issue Analysis
       if: inputs.mode == 'issue-analyze'
       shell: bash
       run: |
         chmod +x ${{ github.action_path }}/scripts/issue-analyze-mode.sh
-        ${{ github.action_path }}/scripts/issue-analyze-mode.sh "${{ inputs.issue-number }}" "${{ inputs.repo-owner }}" "${{ inputs.repo-name }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}" "${{ inputs.debug-mode }}" "${{ inputs.feedback }}" "${{ inputs.require-org-membership }}" "${{ inputs.organization }}"
+        ${{ github.action_path }}/scripts/issue-analyze-mode.sh "${{ inputs.issue-number }}" "${{ inputs.repo-owner }}" "${{ inputs.repo-name }}" "${{ inputs.anthropic-api-key }}" "${{ inputs.github-token }}" "${{ inputs.debug-mode }}" "${{ inputs.feedback }}" "${{ inputs.require-org-membership }}" "${{ inputs.organization }}" "${{ inputs.personal-access-token }}" "${{ inputs.comment-author }}"
