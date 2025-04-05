@@ -49,8 +49,10 @@ jobs:
           FEEDBACK="${{ github.event.comment.body }}"
           # Remove the "claude:" prefix
           FEEDBACK="${FEEDBACK#claude:}"
+          # Remove newlines from feedback to prevent GitHub Actions output issues
+          FEEDBACK_CLEANED="$(echo "$FEEDBACK" | tr '\n' ' ')"
           echo "number=${ISSUE_NUMBER}" >> $GITHUB_OUTPUT
-          echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
+          echo "feedback=${FEEDBACK_CLEANED}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for issue analysis
         uses: fractureinc/claude-code-github-action@v0.5.5
@@ -102,8 +104,10 @@ jobs:
           FEEDBACK="${{ github.event.comment.body }}"
           # Remove the "claude-fix:" prefix
           FEEDBACK="${FEEDBACK#claude-fix:}"
+          # Remove newlines from feedback to prevent GitHub Actions output issues
+          FEEDBACK_CLEANED="$(echo "$FEEDBACK" | tr '\n' ' ')"
           echo "number=${ISSUE_NUMBER}" >> $GITHUB_OUTPUT
-          echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
+          echo "feedback=${FEEDBACK_CLEANED}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for issue fix
         uses: fractureinc/claude-code-github-action@v0.5.5
@@ -147,8 +151,10 @@ jobs:
           FEEDBACK="${{ github.event.comment.body }}"
           # Remove the "claude:" prefix
           FEEDBACK="${FEEDBACK#claude:}"
+          # Remove newlines from feedback to prevent GitHub Actions output issues
+          FEEDBACK_CLEANED="$(echo "$FEEDBACK" | tr '\n' ' ')"
           echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
-          echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
+          echo "feedback=${FEEDBACK_CLEANED}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code
         uses: fractureinc/claude-code-github-action@v0.5.5
@@ -180,8 +186,10 @@ jobs:
           FEEDBACK="${{ github.event.comment.body }}"
           # Remove the "claude-suggest:" prefix
           FEEDBACK="${FEEDBACK#claude-suggest:}"
+          # Remove newlines from feedback to prevent GitHub Actions output issues
+          FEEDBACK_CLEANED="$(echo "$FEEDBACK" | tr '\n' ' ')"
           echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
-          echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
+          echo "feedback=${FEEDBACK_CLEANED}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions
         uses: fractureinc/claude-code-github-action@v0.5.5
@@ -219,8 +227,10 @@ jobs:
           FILE_PATH="${{ github.event.comment.path }}"
           LINE="${{ github.event.comment.line }}"
           
+          # Remove newlines from feedback to prevent GitHub Actions output issues
+          FEEDBACK_CLEANED="$(echo "$FEEDBACK" | tr '\n' ' ')"
           echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
-          echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
+          echo "feedback=${FEEDBACK_CLEANED}" >> $GITHUB_OUTPUT
           
           echo "comment_id=${COMMENT_ID}" >> $GITHUB_OUTPUT
           echo "file_path=${FILE_PATH}" >> $GITHUB_OUTPUT
@@ -260,8 +270,10 @@ jobs:
           FILE_PATH="${{ github.event.comment.path }}"
           LINE="${{ github.event.comment.line }}"
           
+          # Remove newlines from feedback to prevent GitHub Actions output issues
+          FEEDBACK_CLEANED="$(echo "$FEEDBACK" | tr '\n' ' ')"
           echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
-          echo "feedback=${FEEDBACK}" >> $GITHUB_OUTPUT
+          echo "feedback=${FEEDBACK_CLEANED}" >> $GITHUB_OUTPUT
           
           echo "comment_id=${COMMENT_ID}" >> $GITHUB_OUTPUT
           echo "file_path=${FILE_PATH}" >> $GITHUB_OUTPUT
