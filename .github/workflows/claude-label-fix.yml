@@ -47,7 +47,7 @@ jobs:
           git config --global user.email "claude-bot@example.com"
           
       - name: Process issue with Claude Code
-        uses: basicmachines-co/claude-code-github-action@v0.7.0
+        uses: basicmachines-co/claude-code-github-action@v0.11.0
         with:
           mode: 'issue-fix'
           issue-number: ${{ github.event.issue.number }}

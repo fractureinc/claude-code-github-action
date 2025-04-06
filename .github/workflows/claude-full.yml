@@ -59,7 +59,7 @@ jobs:
           echo "comment_author=${COMMENT_AUTHOR}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for issue analysis
-        uses: basicmachines-co/claude-code-github-action@v0.7.0
+        uses: basicmachines-co/claude-code-github-action@v0.11.0
         with:
           mode: 'issue-analyze'
           issue-number: ${{ steps.issue.outputs.number }}
@@ -118,7 +118,7 @@ jobs:
           echo "comment_author=${COMMENT_AUTHOR}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for issue fix
-        uses: basicmachines-co/claude-code-github-action@v0.7.0
+        uses: basicmachines-co/claude-code-github-action@v0.11.0
         with:
           mode: 'issue-fix'
           issue-number: ${{ steps.issue.outputs.number }}
@@ -167,7 +167,7 @@ jobs:
           echo "feedback=${FEEDBACK_CLEANED}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code
-        uses: basicmachines-co/claude-code-github-action@v0.7.0
+        uses: basicmachines-co/claude-code-github-action@v0.11.0
         with:
           mode: 'review'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -202,7 +202,7 @@ jobs:
           echo "feedback=${FEEDBACK_CLEANED}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions
-        uses: basicmachines-co/claude-code-github-action@v0.7.0
+        uses: basicmachines-co/claude-code-github-action@v0.11.0
         with:
           mode: 'suggest'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -247,7 +247,7 @@ jobs:
           echo "line=${LINE}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for code review comment
-        uses: basicmachines-co/claude-code-github-action@v0.7.0
+        uses: basicmachines-co/claude-code-github-action@v0.11.0
         with:
           mode: 'review'
           pr-number: ${{ steps.details.outputs.number }}
@@ -290,7 +290,7 @@ jobs:
           echo "line=${LINE}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions for code review
-        uses: basicmachines-co/claude-code-github-action@v0.7.0
+        uses: basicmachines-co/claude-code-github-action@v0.11.0
         with:
           mode: 'suggest-review'
           pr-number: ${{ steps.details.outputs.number }}
