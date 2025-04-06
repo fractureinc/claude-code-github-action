@@ -276,7 +276,7 @@ EOF
 # Commit the changes
 echo "Committing changes..."
 git add .
-git commit -m "$COMMIT_MESSAGE"
+git commit -s -m "$COMMIT_MESSAGE"
 
 # Push the branch
 echo "Pushing branch to remote..."
