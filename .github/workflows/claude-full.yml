@@ -26,6 +26,8 @@ on:
     secrets:
       ANTHROPIC_API_KEY:
         required: true
+      PERSONAL_ACCESS_TOKEN:
+        required: false
 
 jobs:
   # Handle issue analysis comments
@@ -46,16 +48,22 @@ jobs:
         id: issue
         run: |
           ISSUE_NUMBER="${{ github.event.issue.number }}"
-          FEEDBACK="${{ github.event.comment.body }}"
+          # Use single quotes to prevent Bash from interpreting special characters
+          FEEDBACK='${{ github.event.comment.body }}'
+          COMMENT_AUTHOR="${{ github.event.comment.user.login }}"
           # Remove the "claude:" prefix
           FEEDBACK="${FEEDBACK#claude:}"
           # Remove newlines from feedback to prevent GitHub Actions output issues
           FEEDBACK_CLEANED="$(echo "$FEEDBACK" | tr '\n' ' ')"
           echo "number=${ISSUE_NUMBER}" >> $GITHUB_OUTPUT
-          echo "feedback=${FEEDBACK_CLEANED}" >> $GITHUB_OUTPUT
+          # Use EOF to properly handle special characters in GITHUB_OUTPUT
+          echo "feedback<<EOF" >> $GITHUB_OUTPUT
+          echo "$FEEDBACK_CLEANED" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "comment_author=${COMMENT_AUTHOR}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for issue analysis
-        uses: fractureinc/claude-code-github-action@v0.5.5
+        uses: basicmachines-co/claude-code-github-action@v0.11.0
         with:
           mode: 'issue-analyze'
           issue-number: ${{ steps.issue.outputs.number }}
@@ -65,6 +73,8 @@ jobs:
           debug-mode: ${{ inputs.debug-mode || 'false' }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           github-token: ${{ github.token }}
+          personal-access-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          comment-author: ${{ steps.issue.outputs.comment_author }}
       
       - name: Upload claude output artifacts
         if: always()
@@ -101,16 +111,22 @@ jobs:
         id: issue
         run: |
           ISSUE_NUMBER="${{ github.event.issue.number }}"
-          FEEDBACK="${{ github.event.comment.body }}"
+          # Use single quotes to prevent Bash from interpreting special characters
+          FEEDBACK='${{ github.event.comment.body }}'
+          COMMENT_AUTHOR="${{ github.event.comment.user.login }}"
           # Remove the "claude-fix:" prefix
           FEEDBACK="${FEEDBACK#claude-fix:}"
           # Remove newlines from feedback to prevent GitHub Actions output issues
           FEEDBACK_CLEANED="$(echo "$FEEDBACK" | tr '\n' ' ')"
           echo "number=${ISSUE_NUMBER}" >> $GITHUB_OUTPUT
-          echo "feedback=${FEEDBACK_CLEANED}" >> $GITHUB_OUTPUT
+          # Use EOF to properly handle special characters in GITHUB_OUTPUT
+          echo "feedback<<EOF" >> $GITHUB_OUTPUT
+          echo "$FEEDBACK_CLEANED" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "comment_author=${COMMENT_AUTHOR}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for issue fix
-        uses: fractureinc/claude-code-github-action@v0.5.5
+        uses: basicmachines-co/claude-code-github-action@v0.11.0
         with:
           mode: 'issue-fix'
           issue-number: ${{ steps.issue.outputs.number }}
@@ -122,6 +138,8 @@ jobs:
           feedback: ${{ steps.issue.outputs.feedback }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           github-token: ${{ github.token }}
+          personal-access-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          comment-author: ${{ steps.issue.outputs.comment_author }}
       
       - name: Upload claude output artifacts
         if: always()
@@ -148,16 +166,20 @@ jobs:
         id: pr
         run: |
           PR_NUMBER="${{ github.event.issue.number }}"
-          FEEDBACK="${{ github.event.comment.body }}"
+          # Use single quotes to prevent Bash from interpreting special characters
+          FEEDBACK='${{ github.event.comment.body }}'
           # Remove the "claude:" prefix
           FEEDBACK="${FEEDBACK#claude:}"
           # Remove newlines from feedback to prevent GitHub Actions output issues
           FEEDBACK_CLEANED="$(echo "$FEEDBACK" | tr '\n' ' ')"
           echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
-          echo "feedback=${FEEDBACK_CLEANED}" >> $GITHUB_OUTPUT
+          # Use EOF to properly handle special characters in GITHUB_OUTPUT
+          echo "feedback<<EOF" >> $GITHUB_OUTPUT
+          echo "$FEEDBACK_CLEANED" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code
-        uses: fractureinc/claude-code-github-action@v0.5.5
+        uses: basicmachines-co/claude-code-github-action@v0.11.0
         with:
           mode: 'review'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -183,16 +205,20 @@ jobs:
         id: pr
         run: |
           PR_NUMBER="${{ github.event.issue.number }}"
-          FEEDBACK="${{ github.event.comment.body }}"
+          # Use single quotes to prevent Bash from interpreting special characters
+          FEEDBACK='${{ github.event.comment.body }}'
           # Remove the "claude-suggest:" prefix
           FEEDBACK="${FEEDBACK#claude-suggest:}"
           # Remove newlines from feedback to prevent GitHub Actions output issues
           FEEDBACK_CLEANED="$(echo "$FEEDBACK" | tr '\n' ' ')"
           echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
-          echo "feedback=${FEEDBACK_CLEANED}" >> $GITHUB_OUTPUT
+          # Use EOF to properly handle special characters in GITHUB_OUTPUT
+          echo "feedback<<EOF" >> $GITHUB_OUTPUT
+          echo "$FEEDBACK_CLEANED" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions
-        uses: fractureinc/claude-code-github-action@v0.5.5
+        uses: basicmachines-co/claude-code-github-action@v0.11.0
         with:
           mode: 'suggest'
           pr-number: ${{ steps.pr.outputs.number }}
@@ -220,7 +246,8 @@ jobs:
         id: details
         run: |
           PR_NUMBER="${{ github.event.pull_request.number }}"
-          FEEDBACK="${{ github.event.comment.body }}"
+          # Use single quotes to prevent Bash from interpreting special characters
+          FEEDBACK='${{ github.event.comment.body }}'
           # Remove the "claude:" prefix
           FEEDBACK="${FEEDBACK#claude:}"
           COMMENT_ID="${{ github.event.comment.id }}"
@@ -230,14 +257,17 @@ jobs:
           # Remove newlines from feedback to prevent GitHub Actions output issues
           FEEDBACK_CLEANED="$(echo "$FEEDBACK" | tr '\n' ' ')"
           echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
-          echo "feedback=${FEEDBACK_CLEANED}" >> $GITHUB_OUTPUT
+          # Use EOF to properly handle special characters in GITHUB_OUTPUT
+          echo "feedback<<EOF" >> $GITHUB_OUTPUT
+          echo "$FEEDBACK_CLEANED" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
           
           echo "comment_id=${COMMENT_ID}" >> $GITHUB_OUTPUT
           echo "file_path=${FILE_PATH}" >> $GITHUB_OUTPUT
           echo "line=${LINE}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code for code review comment
-        uses: fractureinc/claude-code-github-action@v0.5.5
+        uses: basicmachines-co/claude-code-github-action@v0.11.0
         with:
           mode: 'review'
           pr-number: ${{ steps.details.outputs.number }}
@@ -263,7 +293,8 @@ jobs:
         id: details
         run: |
           PR_NUMBER="${{ github.event.pull_request.number }}"
-          FEEDBACK="${{ github.event.comment.body }}"
+          # Use single quotes to prevent Bash from interpreting special characters
+          FEEDBACK='${{ github.event.comment.body }}'
           # Remove the "claude-suggest:" prefix
           FEEDBACK="${FEEDBACK#claude-suggest:}"
           COMMENT_ID="${{ github.event.comment.id }}"
@@ -273,14 +304,17 @@ jobs:
           # Remove newlines from feedback to prevent GitHub Actions output issues
           FEEDBACK_CLEANED="$(echo "$FEEDBACK" | tr '\n' ' ')"
           echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
-          echo "feedback=${FEEDBACK_CLEANED}" >> $GITHUB_OUTPUT
+          # Use EOF to properly handle special characters in GITHUB_OUTPUT
+          echo "feedback<<EOF" >> $GITHUB_OUTPUT
+          echo "$FEEDBACK_CLEANED" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
           
           echo "comment_id=${COMMENT_ID}" >> $GITHUB_OUTPUT
           echo "file_path=${FILE_PATH}" >> $GITHUB_OUTPUT
           echo "line=${LINE}" >> $GITHUB_OUTPUT
       
       - name: Process with Claude Code Suggestions for code review
-        uses: fractureinc/claude-code-github-action@v0.5.5
+        uses: basicmachines-co/claude-code-github-action@v0.11.0
         with:
           mode: 'suggest-review'
           pr-number: ${{ steps.details.outputs.number }}

@@ -10,6 +10,10 @@ ANTHROPIC_API_KEY=$4
 GITHUB_TOKEN=$5
 DEBUG_MODE=${6:-"false"}
 FEEDBACK=$7
+REQUIRE_ORG_MEMBERSHIP=${8:-"true"}
+ORGANIZATION=${9:-$REPO_OWNER}
+PERSONAL_ACCESS_TOKEN=${10:-$GITHUB_TOKEN}
+COMMENT_AUTHOR=${11:-""}
 
 # Enable debug mode if requested
 if [[ "$DEBUG_MODE" == "true" ]]; then
@@ -92,7 +96,7 @@ else
   FULL_REPO="$REPO_OWNER/$REPO_NAME"
 fi
 echo "Using repository: $FULL_REPO"
-if ! ISSUE_DETAILS=$(gh issue view $ISSUE_NUMBER --repo "$FULL_REPO" --json title,body,labels); then
+if ! ISSUE_DETAILS=$(gh issue view $ISSUE_NUMBER --repo "$FULL_REPO" --json title,body,labels,author); then
   echo "Error fetching issue details"
   exit 1
 fi
@@ -101,6 +105,50 @@ fi
 ISSUE_TITLE=$(echo "$ISSUE_DETAILS" | jq -r '.title')
 ISSUE_BODY=$(echo "$ISSUE_DETAILS" | jq -r '.body')
 ISSUE_LABELS=$(echo "$ISSUE_DETAILS" | jq -r '.labels[].name' | tr '\n' ',' | sed 's/,$//' || echo "none")
+ISSUE_AUTHOR=$(echo "$ISSUE_DETAILS" | jq -r '.author.login')
+
+# Check if user is a member of the organization if required
+if [[ "$REQUIRE_ORG_MEMBERSHIP" == "true" ]]; then
+  # Use the comment author for the org membership check if provided, otherwise fall back to issue author
+  CHECK_USER="${COMMENT_AUTHOR:-$ISSUE_AUTHOR}"
+  echo "Checking if $CHECK_USER is a member of organization $ORGANIZATION"
+  
+  # Debug output
+  echo "Comment Author: $COMMENT_AUTHOR"
+  echo "Issue Author: $ISSUE_AUTHOR"
+  echo "User being checked: $CHECK_USER"
+  
+  # Always use the GitHub token for org membership check
+  echo "Using GitHub Token for organization membership check"
+  ORG_CHECK=$(gh api -X GET /orgs/$ORGANIZATION/members/$CHECK_USER --silent -i || true)
+  
+  STATUS_CODE=$(echo "$ORG_CHECK" | head -n 1 | cut -d' ' -f2)
+  
+  if [[ "$STATUS_CODE" != "204" ]]; then
+    echo "User $CHECK_USER is not a member of organization $ORGANIZATION. Skipping Claude analysis."
+    
+    # Leave a comment on the issue explaining why the analysis is skipped
+    ISSUE_COMMENT=$(cat <<EOF
+# Claude Code Analysis Skipped
+
+Sorry, Claude Code can only analyze issues created by organization members.
+
+This is to prevent API usage from users outside the organization.
+
+---
+🤖 Generated with Claude Code GitHub Action
+EOF
+)
+    
+    echo "Adding comment to issue #$ISSUE_NUMBER explaining why analysis was skipped"
+    gh issue comment "$ISSUE_NUMBER" --repo "$FULL_REPO" --body "$ISSUE_COMMENT"
+    
+    echo "Exiting due to non-organization member request"
+    exit 0
+  else
+    echo "User $CHECK_USER is a member of organization $ORGANIZATION. Proceeding with Claude analysis."
+  fi
+fi
 
 # Create prompt for Claude
 CLAUDE_PROMPT=$(cat <<EOF
