@@ -301,7 +301,7 @@ EOF
 
 # Create the PR
 echo "Creating pull request..."
-PR_URL=$(gh pr create --repo "$FULL_REPO" --title "Fix: $ISSUE_TITLE" --body "$PR_BODY" --base "$DEFAULT_BRANCH" --head "$FIX_BRANCH")
+PR_URL=$(gh pr create --repo "$FULL_REPO" --title "fix: $ISSUE_TITLE" --body "$PR_BODY" --base "$DEFAULT_BRANCH" --head "$FIX_BRANCH")
 
 # Add a comment to the issue
 ISSUE_COMMENT=$(cat <<EOF
