@@ -118,20 +118,9 @@ if [[ "$REQUIRE_ORG_MEMBERSHIP" == "true" ]]; then
   echo "Issue Author: $ISSUE_AUTHOR"
   echo "User being checked: $CHECK_USER"
   
-  # Temporarily use the personal access token for org membership check if provided
-  if [[ "$PERSONAL_ACCESS_TOKEN" != "$GITHUB_TOKEN" ]]; then
-    echo "Using Personal Access Token for organization membership check"
-    # Save current token auth
-    TEMP_AUTH=$(gh auth status 2>&1 | grep "Logged in")
-    # Switch to personal token for org check
-    echo "$PERSONAL_ACCESS_TOKEN" | gh auth login --with-token
-    ORG_CHECK=$(gh api -X GET /orgs/$ORGANIZATION/members/$CHECK_USER --silent -i || true)
-    # Switch back to github token
-    echo "$GITHUB_TOKEN" | gh auth login --with-token
-  else
-    echo "Using GitHub Token for organization membership check"
-    ORG_CHECK=$(gh api -X GET /orgs/$ORGANIZATION/members/$CHECK_USER --silent -i || true)
-  fi
+  # Always use the GitHub token for org membership check
+  echo "Using GitHub Token for organization membership check"
+  ORG_CHECK=$(gh api -X GET /orgs/$ORGANIZATION/members/$CHECK_USER --silent -i || true)
   
   STATUS_CODE=$(echo "$ORG_CHECK" | head -n 1 | cut -d' ' -f2)
   
