@@ -192,7 +192,7 @@ git fetch origin $DEFAULT_BRANCH
 git checkout -b $FIX_BRANCH origin/$DEFAULT_BRANCH
 
 # Create prompt for Claude
-CLAUDE_PROMPT=$(cat <<EOF
+CLAUDE_PROMPT=$(cat <<'EOF'
 You are Claude, an AI assistant tasked with fixing issues in a GitHub repository.
 
 Issue #$ISSUE_NUMBER: $ISSUE_TITLE
@@ -204,7 +204,7 @@ EOF
 
 # Add additional instructions if provided
 if [ -n "$FEEDBACK" ]; then
-  CLAUDE_PROMPT+=$(cat <<EOF
+  CLAUDE_PROMPT+=$(cat <<'EOF'
 
 Additional Instructions from User Comment:
 $FEEDBACK
@@ -213,7 +213,7 @@ EOF
 fi
 
 # Complete the prompt
-CLAUDE_PROMPT+=$(cat <<EOF
+CLAUDE_PROMPT+=$(cat <<'EOF'
 
 Your task is to:
 1. Analyze the issue carefully to understand the problem
